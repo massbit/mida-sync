@@ -16,9 +16,10 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   check-latest: true
             - name: Install dependecies
-              run: |
-                  yarn install --ignore-engines
-                  rm .npmrc
+              run: yarn install --ignore-engines
             - name: Build typescript
               run: |
                   yarn tsc
+            - name: Run tests
+              run: |
+                  yarn test
