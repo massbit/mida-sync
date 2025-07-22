@@ -6,6 +6,10 @@ export const startServer = async () => {
         logger: true,
     })
 
+    fastify.get('/health', async () => {
+        return { status: 'ok' }
+    })
+
     registerNotifireRoutes(fastify)
 
     await fastify.listen({
