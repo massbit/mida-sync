@@ -4,6 +4,7 @@ import { registerNotifireRoutes } from './routes/notifire'
 export const startServer = async () => {
     const fastify = Fastify({
         logger: true,
+        disableRequestLogging: true,
     })
 
     fastify.get('/health', async () => {

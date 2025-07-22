@@ -1,0 +1,2 @@
+# Call the POST /notifire endpoint every minute
+* * * * * curl -X POST http://localhost:3000/notifire >> /var/log/cron.log 2>&1
