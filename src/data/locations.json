@@ -1,0 +1,49 @@
+{
+    "locations": [
+        {
+            "name": "MOLINELLA",
+            "latitude": 44.606251,
+            "longitude": 11.656904
+        },
+        {
+            "name": "MEDICINA",
+            "latitude": 44.4792225,
+            "longitude": 11.6390842
+        },
+        {
+            "name": "BUDRIO",
+            "latitude": 44.5379965,
+            "longitude": 11.5372723
+        },
+        {
+            "name": "S. PIETRO IN C.",
+            "latitude": 44.699013,
+            "longitude": 11.3990557
+        },
+        {
+            "name": "CENTRALE",
+            "latitude": 44.5333573,
+            "longitude": 11.3657599
+        },
+        {
+            "name": "IMOLA",
+            "latitude": 44.3568106,
+            "longitude": 11.7097225
+        },
+        {
+            "name": "S. LAZZARO DI S.",
+            "latitude": 44.4691849,
+            "longitude": 11.4234292
+        },
+        {
+            "name": "PORTOMAGGIORE",
+            "latitude": 44.7027326,
+            "longitude": 11.8093562
+        },
+        {
+            "name": "FERRARA",
+            "latitude": 44.8260323,
+            "longitude": 11.574499
+        }
+    ]
+}

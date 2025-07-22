@@ -8,6 +8,7 @@
     "test": "mocha --require ts-node/register --extension ts --spec './tests/**/*.ts'"
   },
   "dependencies": {
+    "@googlemaps/routing": "^2.1.0",
     "axios": "^1.10.0",
     "dotenv": "^17.2.0",
     "fastify": "^5.4.0",

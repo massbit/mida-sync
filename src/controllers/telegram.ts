@@ -1,5 +1,7 @@
 import { sendTelegramMessage } from '../services/telegram'
 import { ElaboratedIntervention, checkIfInterventionIsOfCompetence } from './intervention'
+import * as locations from '../data/locations.json'
+import { getGoogleMapsRoute } from '../services/google-maps'
 
 const separator = '--------------------------------'
 
@@ -15,18 +17,11 @@ export const sendInterventionMessage = async (intervention: ElaboratedInterventi
     const wazeUrl = `https://waze.com/ul?ll=${intervention.intervention.latitude},${intervention.intervention.longitude}&navigate=yes`
 
     // Prepare the competence message with MOLINELLA in bold
-    const competencesMessage = Object.values(intervention.territory)
-        .map((value, index) => {
-            // Make MOLINELLA bold using HTML formatting
-            const formattedValue =
-                value && value.includes('MOLINELLA') ? value.replace('MOLINELLA', '<b>MOLINELLA</b>') : value || 'N/A'
-            return `${index + 1}. ${formattedValue}`
-        })
-        .join('\n')
+    const competencesMessage = await generateCompetenceMessage(intervention)
 
     // Do not change the indentation, it is important for the Telegram message formatting
     const textMessage = `
-🚒 ${title} 🚧
+🚒 ${title}
 📟 ${intervention.intervention.title} 
 📏 ${Math.round(intervention.distance * 100) / 100} km 
 ${separator}
@@ -48,4 +43,43 @@ ${separator}
             ],
         },
     })
+}
+
+export const generateCompetenceMessage = async (intervention: ElaboratedIntervention): Promise<string> => {
+    const competences = Object.values(intervention.territory) as string[]
+    const computedCompetences: string[] = []
+
+    for (let i = 0; i < competences.length; i++) {
+        const competence = competences[i]
+
+        const foundLocation = locations.locations.find(
+            (location) => location.name.toUpperCase() === competence.toUpperCase()
+        )
+
+        if (foundLocation !== undefined) {
+            const routeInformations = await getGoogleMapsRoute(
+                {
+                    latitude: foundLocation.latitude,
+                    longitude: foundLocation.longitude,
+                },
+                {
+                    latitude: intervention.intervention.latitude,
+                    longitude: intervention.intervention.longitude,
+                }
+            )
+
+            if (!routeInformations) {
+                computedCompetences.push(`${i + 1}. ${foundLocation.name} (N/A)`)
+                continue
+            }
+
+            computedCompetences.push(
+                `${i + 1}. ${foundLocation.name} (${routeInformations.distance} km, ${routeInformations.duration} min)`
+            )
+        } else {
+            computedCompetences.push(`${i + 1}. ${competence} (N/A)`)
+        }
+    }
+
+    return computedCompetences.join('\n')
 }
