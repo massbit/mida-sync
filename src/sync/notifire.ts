@@ -1,7 +1,8 @@
-import { getInterventionsFromNotifire } from '../services/notifire'
+import { getInterventionsFromNotifire, NotifireIntervention } from '../services/notifire'
 import * as BolognaTerritories from '../data/territories/bologna.json'
 import * as FerraraTerritories from '../data/territories/ferrara.json'
-import { Coordinates, isPointInPolygon } from '../utilites/geo'
+import { calculateDistanceInKm, Coordinates, isPointInPolygon } from '../utilites/geo'
+import { MolinellaCoordinates } from '../utilites/constants'
 
 interface FerraraTerritoryProperties {
     PRIMA_COMP: string | null
@@ -29,13 +30,16 @@ interface Territory<T = FerraraTerritoryProperties | BolognaTerritoryProperties>
     }[]
 }
 
+export interface ElaboratedIntervention {
+    intervention: NotifireIntervention
+    territory: Squads
+    distance: number
+}
+
 export const syncNotifireData = async () => {
     const interventions = await getInterventionsFromNotifire()
 
-    const parsedInterventions: {
-        intervention: {}
-        territory: Squads
-    }[] = []
+    const parsedInterventions: ElaboratedIntervention[] = []
 
     for (let i = 0; i < interventions.length; i++) {
         const intervention = interventions[i]
@@ -49,9 +53,15 @@ export const syncNotifireData = async () => {
             continue
         }
 
+        const distance = calculateDistanceInKm(
+            { latitude: intervention.latitude, longitude: intervention.longitude },
+            { latitude: MolinellaCoordinates.latitude, longitude: MolinellaCoordinates.longitude }
+        )
+
         parsedInterventions.push({
             intervention,
             territory,
+            distance,
         })
     }
 
