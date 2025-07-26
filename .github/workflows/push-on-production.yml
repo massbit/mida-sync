@@ -1,0 +1,35 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - main
+
+env:
+    NODE_VERSION: '22'
+
+jobs:
+    push-on-production:
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out repository code
+              uses: actions/checkout@v2
+            - name: Put env variables
+              run: |
+                  echo "${{ secrets.ENV }}" >> ./.env
+            - name: Prepare directory to copy
+              run: |
+                mkdir -p service
+                cp -R ./src service/src
+                cp ./cron.txt service/cron.txt
+                cp ./docker-compose.yml service/docker-compose.yml
+                cp ./Dockerfile service/Dockerfile
+            - name: Copy build folder to server
+              uses: garygrossgarten/github-action-scp@release
+              with:
+                  local: service
+                  remote: mida-sync/
+                  host: ${{ secrets.HOST }}
+                  username: ${{ secrets.SSH_USER }}
+                  privateKey: ${{ secrets.PRIVATE_KEY }}

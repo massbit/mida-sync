@@ -1,5 +1,6 @@
 import { checkIfInterventionIsOfCompetence, syncNotifireData } from '../controllers/intervention'
 import { sendInterventionMessage } from '../controllers/telegram'
+import { createIntervention, getInterventionByUuid } from '../models/intervention'
 
 export const registerNotifireRoutes = (fastify) => {
     fastify.route({
@@ -20,10 +21,29 @@ export const registerNotifireRoutes = (fastify) => {
             for (let i = 0; i < filteredInterventions.length; i++) {
                 const intervention = filteredInterventions[i]
 
+                const foundIntervention = await getInterventionByUuid(intervention.intervention.id)
+
+                if (foundIntervention) {
+                    continue
+                }
+
                 await sendInterventionMessage(intervention)
+
+                await createIntervention({
+                    uuid: intervention.intervention.id,
+                    title: intervention.intervention.title,
+                    position: {
+                        type: 'Point',
+                        coordinates: [intervention.intervention.longitude, intervention.intervention.latitude],
+                    },
+                    sender: intervention.intervention.sender,
+                    start_time: intervention.intervention.startTime,
+                    type: intervention.intervention.type,
+                    active: true,
+                })
             }
 
-            reply.status(200).send(filteredInterventions)
+            reply.status(204).send(undefined)
         },
     })
 }

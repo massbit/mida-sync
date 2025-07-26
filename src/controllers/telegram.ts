@@ -2,6 +2,7 @@ import { sendTelegramMessage } from '../services/telegram'
 import { ElaboratedIntervention, checkIfInterventionIsOfCompetence } from './intervention'
 import * as locations from '../data/locations.json'
 import { getGoogleMapsRoute } from '../services/google-maps'
+import { getTelegramUsers } from '../models/telegramuser'
 
 const separator = '--------------------------------'
 
@@ -23,7 +24,7 @@ export const sendInterventionMessage = async (intervention: ElaboratedInterventi
     const textMessage = `
 🚒 ${title}
 📟 ${intervention.intervention.title} 
-📏 ${Math.round(intervention.distance * 100) / 100} km 
+📏 ${Math.round(intervention.distance * 100) / 100} km in linea d'aria
 ${separator}
 🗺️ Competenze:
 ${competencesMessage}
@@ -31,18 +32,24 @@ ${separator}
 📢 ${intervention.intervention.sender}
 `
 
-    await sendTelegramMessage('516662533', textMessage, {
-        parse_mode: 'HTML',
-        reply_markup: {
-            inline_keyboard: [
-                [
-                    { text: '📍 Google Maps', url: mapsUrl },
-                    { text: '🍏 Apple Maps', url: appleMapsUrl },
-                    { text: '🗺️ Waze', url: wazeUrl },
+    const telegramUsers = await getTelegramUsers()
+
+    for (let i = 0; i < telegramUsers.length; i++) {
+        const user = telegramUsers[i]
+
+        await sendTelegramMessage(user.chat_id, textMessage, {
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '📍 Google Maps', url: mapsUrl },
+                        { text: '🍏 Apple Maps', url: appleMapsUrl },
+                        { text: '🗺️ Waze', url: wazeUrl },
+                    ],
                 ],
-            ],
-        },
-    })
+            },
+        })
+    }
 }
 
 export const generateCompetenceMessage = async (intervention: ElaboratedIntervention): Promise<string> => {
@@ -52,8 +59,8 @@ export const generateCompetenceMessage = async (intervention: ElaboratedInterven
     for (let i = 0; i < competences.length; i++) {
         const competence = competences[i]
 
-        const foundLocation = locations.locations.find(
-            (location) => location.name.toUpperCase() === competence.toUpperCase()
+        const foundLocation = locations.locations.find((location) =>
+            competence.toUpperCase().includes(location.name.toUpperCase())
         )
 
         if (foundLocation !== undefined) {

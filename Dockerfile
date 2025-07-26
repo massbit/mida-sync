@@ -25,5 +25,7 @@ RUN mkdir -p /var/log && touch /var/log/cron.log
 
 EXPOSE 3000
 
+ENV NODE_ENV production
+
 # Start cron service and the main application
 CMD ["sh", "-c", "cron && node ./dist/src/index.js"]
