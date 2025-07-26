@@ -23,3 +23,28 @@ jobs:
             - name: Run tests
               run: |
                   yarn test
+    push-on-production:
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out repository code
+              uses: actions/checkout@v2
+            - name: Put env variables
+              run: |
+                  echo "${{ secrets.ENV }}" >> ./.env
+            - name: Prepare directory to copy
+              run: |
+                  mkdir -p service
+                  cp -R ./src service/src
+                  cp ./cron.txt service/cron.txt
+                  cp ./docker-compose.yml service/docker-compose.yml
+                  cp ./Dockerfile service/Dockerfile
+            - name: Copy api folder to the server
+              uses: appleboy/scp-action@master
+              with:
+                  host: ${{ secrets.HOST }}
+                  username: ${{ secrets.SSH_USER }}
+                  key: ${{ secrets.PRIVATE_KEY }}
+                  strip_components: 1
+                  source: './service/*'
+                  target: 'mida-sync/'
