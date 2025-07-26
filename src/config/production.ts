@@ -3,7 +3,7 @@ import { Config } from './config'
 export const productionConfig: Config = {
     database: {
         user: 'postgres',
-        host: '18.184.96.103',
+        host: 'localhost',
         database: 'mida',
         password: 'gAJqPYHM8p7WRLrWZFCj',
         port: 5432,
