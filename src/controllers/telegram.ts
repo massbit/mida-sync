@@ -30,6 +30,9 @@ ${separator}
 ${competencesMessage}
 ${separator}
 📢 ${intervention.intervention.sender}
+
+** Note: **
+- Le distanze dai distaccamenti sono calcolate sul momento sulla base del traffico stradale. I tempi di percorrenza sono indicativi e possono variare in base alle condizioni del traffico.
 `
 
     const telegramUsers = await getTelegramUsers()
