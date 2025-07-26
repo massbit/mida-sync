@@ -52,3 +52,13 @@ jobs:
                   strip_components: 1
                   source: './service/*'
                   target: 'mida-sync/'
+            - name: Update server service
+              uses: appleboy/ssh-action@master
+              with:
+                host: ${{ secrets.HOST }}
+                username: ${{ secrets.SSH_USER }}
+                key: ${{ secrets.PRIVATE_KEY }}
+                script: |
+                  cd mida-sync/
+                  docker compose build --no-cache
+                  docker compose up -d --force-recreate
