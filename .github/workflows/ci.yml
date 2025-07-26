@@ -39,6 +39,9 @@ jobs:
                   cp ./cron.txt service/cron.txt
                   cp ./docker-compose.yml service/docker-compose.yml
                   cp ./Dockerfile service/Dockerfile
+                  cp ./package.json service/package.json
+                  cp ./tsconfig.json service/tsconfig.json
+                  cp ./.env service/.env
             - name: Copy api folder to the server
               uses: appleboy/scp-action@master
               with:
