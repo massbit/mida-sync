@@ -37,18 +37,22 @@ ${separator}
     for (let i = 0; i < telegramUsers.length; i++) {
         const user = telegramUsers[i]
 
-        await sendTelegramMessage(user.chat_id, textMessage, {
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        { text: '📍 Google Maps', url: mapsUrl },
-                        { text: '🍏 Apple Maps', url: appleMapsUrl },
-                        { text: '🗺️ Waze', url: wazeUrl },
+        try {
+            await sendTelegramMessage(user.chat_id, textMessage, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: '📍 Google Maps', url: mapsUrl },
+                            { text: '🍏 Apple Maps', url: appleMapsUrl },
+                            { text: '🗺️ Waze', url: wazeUrl },
+                        ],
                     ],
-                ],
-            },
-        })
+                },
+            })
+        } catch (error) {
+            console.error(`Failed to send message to user ${user.chat_id}:`, error)
+        }
     }
 }
 
