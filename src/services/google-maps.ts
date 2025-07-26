@@ -1,4 +1,4 @@
-import { GOOGLE_MAPS_API_KEY } from '../utilites/constants'
+import { config } from '../config/config'
 import { Coordinates } from '../utilites/geo'
 import { RoutesClient } from '@googlemaps/routing'
 
@@ -13,7 +13,7 @@ export const getGoogleMapsRoute = async (
     | undefined
 > => {
     const client = new RoutesClient({
-        apiKey: GOOGLE_MAPS_API_KEY,
+        apiKey: config.google_maps_api_key,
     })
 
     const routes = await client

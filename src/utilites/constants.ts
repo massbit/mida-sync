@@ -11,7 +11,3 @@ export const MilanCoordinates = {
     latitude: 45.46362,
     longitude: 9.18812,
 }
-
-export const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN as string
-export const TELEGRAM_2_TOKEN = process.env.TELEGRAM_2_TOKEN as string
-export const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY as string
