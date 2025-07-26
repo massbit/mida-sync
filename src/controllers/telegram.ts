@@ -47,6 +47,12 @@ ${separator}
                             { text: '🍏 Apple Maps', url: appleMapsUrl },
                             { text: '🗺️ Waze', url: wazeUrl },
                         ],
+                        [
+                            {
+                                text: 'Asset Bologna',
+                                url: 'https://vvfsctas.maps.arcgis.com/apps/webappviewer/index.html?id=4fdccb08973d4ba5ab41e021a16e3241',
+                            },
+                        ],
                     ],
                 },
             })

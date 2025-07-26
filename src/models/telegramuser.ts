@@ -14,6 +14,8 @@ export interface TelegramUser {
 export const getTelegramUsers = async (allowTest: boolean = true): Promise<TelegramUser[]> => {
     const filterStatements: string[] = []
 
+    filterStatements.push('accept_intervention_notifiers = true')
+
     if (allowTest && getNodeEnv() === 'development') {
         filterStatements.push('test = true')
     }
