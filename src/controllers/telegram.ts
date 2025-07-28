@@ -3,6 +3,9 @@ import { ElaboratedIntervention, checkIfInterventionIsOfCompetence } from './int
 import * as locations from '../data/locations.json'
 import { getGoogleMapsRoute } from '../services/google-maps'
 import { getTelegramUsers } from '../models/telegramuser'
+import { MolinellaCoordinates } from '../utilites/constants'
+
+const molinellaWord = 'MOLINELLA'
 
 const separator = '--------------------------------'
 
@@ -15,7 +18,7 @@ export const sendInterventionMessage = async (intervention: ElaboratedInterventi
 
     const mapsUrl = `https://www.google.it/maps/place/${intervention.intervention.latitude},${intervention.intervention.longitude}`
     const appleMapsUrl = `https://maps.apple.com/?ll=${intervention.intervention.latitude},${intervention.intervention.longitude}`
-    const wazeUrl = `https://waze.com/ul?ll=${intervention.intervention.latitude},${intervention.intervention.longitude}&navigate=yes`
+    const wazeUrl = `https://waze.com/ul?ll=${intervention.intervention.latitude},${intervention.intervention.longitude}`
 
     // Prepare the competence message with MOLINELLA in bold
     const competencesMessage = await generateCompetenceMessage(intervention)
@@ -24,15 +27,11 @@ export const sendInterventionMessage = async (intervention: ElaboratedInterventi
     const textMessage = `
 🚒 ${title}
 📟 ${intervention.intervention.title} 
-📏 ${Math.round(intervention.distance * 100) / 100} km in linea d'aria
 ${separator}
 🗺️ Competenze:
 ${competencesMessage}
 ${separator}
 📢 ${intervention.intervention.sender}
-
-** Note: **
-- Le distanze dai distaccamenti sono calcolate sul momento sulla base del traffico stradale. I tempi di percorrenza sono indicativi e possono variare in base alle condizioni del traffico.
 `
 
     const telegramUsers = await getTelegramUsers()
@@ -101,5 +100,29 @@ export const generateCompetenceMessage = async (intervention: ElaboratedInterven
         }
     }
 
-    return computedCompetences.join('\n')
+    const hasMolinella = computedCompetences.some((c) => c.toUpperCase().includes(molinellaWord))
+
+    if (!hasMolinella) {
+        const routeInformations = await getGoogleMapsRoute(
+            {
+                latitude: MolinellaCoordinates.latitude,
+                longitude: MolinellaCoordinates.longitude,
+            },
+            {
+                latitude: intervention.intervention.latitude,
+                longitude: intervention.intervention.longitude,
+            }
+        )
+
+        let distances = '(N/A)'
+
+        if (routeInformations) {
+            distances = `(${routeInformations.distance} km, ${routeInformations.duration} min)`
+        }
+
+        computedCompetences.push(`\n*. ${molinellaWord} ${distances}`)
+    }
+
+    // Join and put molinella in bold
+    return computedCompetences.join('\n').replace(molinellaWord, `<b>${molinellaWord}</b>`)
 }
