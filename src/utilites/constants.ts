@@ -11,3 +11,5 @@ export const MilanCoordinates = {
     latitude: 45.46362,
     longitude: 9.18812,
 }
+
+export const WORK_SHIFTS = ['A', 'B', 'C', 'D']

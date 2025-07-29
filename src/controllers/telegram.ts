@@ -2,9 +2,10 @@ import { sendTelegramMessage } from '../services/telegram'
 import { ElaboratedIntervention, checkIfInterventionIsOfCompetence } from './intervention'
 import * as locations from '../data/locations.json'
 import { getAddressFromCoordinates, getGoogleMapsRoute } from '../services/google-maps'
-import { getTelegramUsers } from '../models/telegramuser'
+import { getTelegramUsers } from '../models/telegram-user'
 import { MolinellaCoordinates } from '../utilites/constants'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
+import { getActualWorkShift } from '../utilites/common'
 
 const molinellaWord = 'MOLINELLA'
 
@@ -29,6 +30,9 @@ export const sendInterventionMessage = async (intervention: ElaboratedInterventi
     // Prepare the competence message with MOLINELLA in bold
     const competencesMessage = await generateCompetenceMessage(intervention)
 
+    const permanentCurrentShift = getActualWorkShift(false)
+    const volunteerCurrentShift = getActualWorkShift(true)
+
     // Do not change the indentation, it is important for the Telegram message formatting
     const textMessage = `
 🚒 ${title}
@@ -39,6 +43,9 @@ ${separator}
 ${competencesMessage}
 ${separator}
 📢 ${intervention.intervention.sender}
+${separator}
+🗒️ Turno: ${permanentCurrentShift.shift} ${permanentCurrentShift.night ? 'Notturno' : 'Diurno'}
+🗓️ Turno volontario: ${volunteerCurrentShift.shift} ${volunteerCurrentShift.night ? 'Notturno' : 'Diurno'}
 `
 
     const buttons: InlineKeyboardButton[][] = [
