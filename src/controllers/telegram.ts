@@ -74,39 +74,46 @@ ${separator}
 }
 
 export const generateCompetenceMessage = async (intervention: ElaboratedIntervention): Promise<string> => {
-    const competences = Object.values(intervention.territory) as string[]
     const computedCompetences: string[] = []
 
-    for (let i = 0; i < competences.length; i++) {
-        const competence = competences[i]
+    if (intervention.territory) {
+        const competences = Object.values(intervention.territory) as string[]
 
-        const foundLocation = locations.locations.find((location) =>
-            competence.toUpperCase().includes(location.name.toUpperCase())
-        )
+        for (let i = 0; i < competences.length; i++) {
+            const competence = competences[i]
 
-        if (foundLocation !== undefined) {
-            const routeInformations = await getGoogleMapsRoute(
-                {
-                    latitude: foundLocation.latitude,
-                    longitude: foundLocation.longitude,
-                },
-                {
-                    latitude: intervention.intervention.latitude,
-                    longitude: intervention.intervention.longitude,
+            const foundLocation = locations.locations.find((location) =>
+                competence.toUpperCase().includes(location.name.toUpperCase())
+            )
+
+            if (foundLocation !== undefined) {
+                const routeInformations = await getGoogleMapsRoute(
+                    {
+                        latitude: foundLocation.latitude,
+                        longitude: foundLocation.longitude,
+                    },
+                    {
+                        latitude: intervention.intervention.latitude,
+                        longitude: intervention.intervention.longitude,
+                    }
+                )
+
+                if (!routeInformations) {
+                    computedCompetences.push(`${i + 1}. ${foundLocation.name} (N/A)`)
+                    continue
                 }
-            )
 
-            if (!routeInformations) {
-                computedCompetences.push(`${i + 1}. ${foundLocation.name} (N/A)`)
-                continue
+                computedCompetences.push(
+                    `${i + 1}. ${foundLocation.name} (${routeInformations.distance} km, ${routeInformations.duration} min)`
+                )
+            } else {
+                computedCompetences.push(`${i + 1}. ${competence} (N/A)`)
             }
-
-            computedCompetences.push(
-                `${i + 1}. ${foundLocation.name} (${routeInformations.distance} km, ${routeInformations.duration} min)`
-            )
-        } else {
-            computedCompetences.push(`${i + 1}. ${competence} (N/A)`)
         }
+    }
+
+    if (computedCompetences.length === 0) {
+        computedCompetences.push('Non è stata trovata nessuna competenza per questo intervento.')
     }
 
     const hasMolinella = computedCompetences.some((c) => c.toUpperCase().includes(molinellaWord))

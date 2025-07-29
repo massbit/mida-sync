@@ -32,7 +32,7 @@ interface Territory<T = FerraraTerritoryProperties | BolognaTerritoryProperties>
 
 export interface ElaboratedIntervention {
     intervention: NotifireIntervention
-    territory: Squads
+    territory: Squads | null
     distance: number
 }
 
@@ -48,10 +48,6 @@ export const syncNotifireData = async () => {
             latitude: intervention.latitude,
             longitude: intervention.longitude,
         })
-
-        if (!territory) {
-            continue
-        }
 
         const distance = calculateDistanceInKm(
             { latitude: intervention.latitude, longitude: intervention.longitude },
@@ -120,5 +116,9 @@ const findTerritoryByLocation = (location: Coordinates): Squads | null => {
 }
 
 export const checkIfInterventionIsOfCompetence = (intervention: ElaboratedIntervention): boolean => {
+    if (!intervention.territory) {
+        return false
+    }
+
     return (Object.values(intervention.territory) as string[]).some((value) => value.toUpperCase() === 'MOLINELLA')
 }
