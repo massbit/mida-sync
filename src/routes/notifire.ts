@@ -15,7 +15,7 @@ export const registerNotifireRoutes = (fastify) => {
                     return true
                 }
 
-                return item.distance <= 16 // 16 km radius
+                return item.distance <= 16.5
             })
 
             for (let i = 0; i < filteredInterventions.length; i++) {
