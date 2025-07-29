@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import { registerNotifireRoutes } from './routes/notifire'
+import { registerMeteoAlertsRoutes } from './routes/meteo-alerts'
 
 export const startServer = async () => {
     const fastify = Fastify({
@@ -12,6 +13,7 @@ export const startServer = async () => {
     })
 
     registerNotifireRoutes(fastify)
+    registerMeteoAlertsRoutes(fastify)
 
     await fastify.listen({
         port: 3000,
