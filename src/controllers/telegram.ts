@@ -1,9 +1,10 @@
 import { sendTelegramMessage } from '../services/telegram'
 import { ElaboratedIntervention, checkIfInterventionIsOfCompetence } from './intervention'
 import * as locations from '../data/locations.json'
-import { getGoogleMapsRoute } from '../services/google-maps'
+import { getAddressFromCoordinates, getGoogleMapsRoute } from '../services/google-maps'
 import { getTelegramUsers } from '../models/telegramuser'
 import { MolinellaCoordinates } from '../utilites/constants'
+import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 
 const molinellaWord = 'MOLINELLA'
 
@@ -20,19 +21,39 @@ export const sendInterventionMessage = async (intervention: ElaboratedInterventi
     const appleMapsUrl = `https://maps.apple.com/?ll=${intervention.intervention.latitude},${intervention.intervention.longitude}`
     const wazeUrl = `https://waze.com/ul?ll=${intervention.intervention.latitude},${intervention.intervention.longitude}`
 
+    const placeAddress = await getAddressFromCoordinates({
+        latitude: intervention.intervention.latitude,
+        longitude: intervention.intervention.longitude,
+    })
+
     // Prepare the competence message with MOLINELLA in bold
     const competencesMessage = await generateCompetenceMessage(intervention)
 
     // Do not change the indentation, it is important for the Telegram message formatting
     const textMessage = `
 🚒 ${title}
-📟 ${intervention.intervention.title} 
+📟 ${intervention.intervention.title}
+📍 ${placeAddress || 'Indirizzo non disponibile'}
 ${separator}
 🗺️ Competenze:
 ${competencesMessage}
 ${separator}
 📢 ${intervention.intervention.sender}
 `
+
+    const buttons: InlineKeyboardButton[][] = [
+        [
+            { text: '📍 Google Maps', url: mapsUrl },
+            { text: '🍏 Apple Maps', url: appleMapsUrl },
+            { text: '🗺️ Waze', url: wazeUrl },
+        ],
+        [
+            {
+                text: 'Asset Bologna',
+                url: 'https://vvfsctas.maps.arcgis.com/apps/webappviewer/index.html?id=4fdccb08973d4ba5ab41e021a16e3241',
+            },
+        ],
+    ]
 
     const telegramUsers = await getTelegramUsers()
 
@@ -43,19 +64,7 @@ ${separator}
             await sendTelegramMessage(user.chat_id, textMessage, {
                 parse_mode: 'HTML',
                 reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: '📍 Google Maps', url: mapsUrl },
-                            { text: '🍏 Apple Maps', url: appleMapsUrl },
-                            { text: '🗺️ Waze', url: wazeUrl },
-                        ],
-                        [
-                            {
-                                text: 'Asset Bologna',
-                                url: 'https://vvfsctas.maps.arcgis.com/apps/webappviewer/index.html?id=4fdccb08973d4ba5ab41e021a16e3241',
-                            },
-                        ],
-                    ],
+                    inline_keyboard: buttons,
                 },
             })
         } catch (error) {

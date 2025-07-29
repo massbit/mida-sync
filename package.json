@@ -10,6 +10,7 @@
     "deploy": "docker compose build --no-cache && docker compose up -d --force-recreate"
   },
   "dependencies": {
+    "@googlemaps/google-maps-services-js": "^3.4.2",
     "@googlemaps/routing": "^2.1.0",
     "axios": "^1.10.0",
     "dotenv": "^17.2.0",
