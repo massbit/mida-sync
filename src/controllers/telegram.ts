@@ -38,11 +38,10 @@ export const sendInterventionMessage = async (intervention: ElaboratedInterventi
 🚒 ${title}
 📟 ${intervention.intervention.title}
 📍 ${placeAddress || 'Indirizzo non disponibile'}
+📢 ${intervention.intervention.sender}
 ${separator}
 🗺️ Competenze:
 ${competencesMessage}
-${separator}
-📢 ${intervention.intervention.sender}
 ${separator}
 🗒️ Turno: ${permanentCurrentShift.shift} ${permanentCurrentShift.night ? 'Notturno' : 'Diurno'}
 🗓️ Turno volontario: ${volunteerCurrentShift.shift} ${volunteerCurrentShift.night ? 'Notturno' : 'Diurno'}
