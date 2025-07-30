@@ -44,6 +44,16 @@
             "name": "FERRARA",
             "latitude": 44.8260323,
             "longitude": 11.574499
+        },
+        {
+            "name": "COPPARO",
+            "latitude": 44.8918679,
+            "longitude": 11.8082596
+        },
+        {
+            "name": "LUGO",
+            "latitude": 44.4397488,
+            "longitude": 11.8919632
         }
     ]
 }
