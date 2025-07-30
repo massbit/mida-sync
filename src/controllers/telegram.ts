@@ -6,6 +6,7 @@ import { getTelegramUsers } from '../models/telegram-user'
 import { MolinellaCoordinates } from '../utilites/constants'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { getActualWorkShift } from '../utilites/common'
+import { ParsedMeteoAlert } from '../utilites/meteo-alerts'
 
 const molinellaWord = 'MOLINELLA'
 
@@ -147,4 +148,39 @@ export const generateCompetenceMessage = async (intervention: ElaboratedInterven
 
     // Join and put molinella in bold
     return computedCompetences.join('\n').replace(molinellaWord, `<b>${molinellaWord}</b>`)
+}
+
+export const sendNewTomorrowAlertMessage = async (alert: ParsedMeteoAlert) => {
+    const telegramUsers = await getTelegramUsers()
+
+    const criticDataMessage = Object.keys(alert.criticZoneData)
+        .map((key) => `${key}: ${alert.criticZoneData[key]}`)
+        .join('\n')
+
+    const textMessage = `⚠️ Nuova allerta meteo per domani!
+📅 Data inizio: ${alert.dataInizio}
+📅 Data fine: ${alert.dataFine}
+${separator}
+Zona D1:
+${criticDataMessage}
+${separator}
+📜 Descrizione: ${alert.descrizionemeteo}
+`
+
+    const buttons: InlineKeyboardButton[][] = [[{ text: 'Documento pdf', url: alert.link }]]
+
+    for (let i = 0; i < telegramUsers.length; i++) {
+        const user = telegramUsers[i]
+
+        try {
+            await sendTelegramMessage(user.chat_id, textMessage, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: buttons,
+                },
+            })
+        } catch (error) {
+            console.error(`Failed to send message to user ${user.chat_id}:`, error)
+        }
+    }
 }

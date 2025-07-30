@@ -2,4 +2,5 @@ import moment from 'moment/min/moment-with-locales'
 
 moment.locale('it')
 
-export default moment
+type customMoment = typeof moment
+export default moment as customMoment
