@@ -154,7 +154,18 @@ export const sendNewTomorrowAlertMessage = async (alert: ParsedMeteoAlert) => {
     const telegramUsers = await getTelegramUsers()
 
     const criticDataMessage = Object.keys(alert.criticZoneData)
-        .map((key) => `${key.toUpperCase()}: ${translateKey(`alert.colors.${alert.criticZoneData[key]}`, 'it')}`)
+        .map((key) => {
+            const color = alert.criticZoneData[key]
+            const colorHtml =
+                {
+                    green: '🟢',
+                    yellow: '🟡',
+                    orange: '🟠',
+                    red: '🔴',
+                }[color.toLowerCase()] || ''
+
+            return `${key.toUpperCase()}: ${colorHtml} ${translateKey(`alert.colors.${color}`, 'it')}`
+        })
         .join('\n')
 
     const textMessage = `⚠️ Nuova allerta meteo per domani!

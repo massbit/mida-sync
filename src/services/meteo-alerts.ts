@@ -10,15 +10,14 @@ export enum MeteoAlertType {
 
 export interface MeteoAlertZone {
     ghiaccio_pioggia_gela: MeteoAlertType | null
-    idraulica: MeteoAlertType
-    idrogeologica: MeteoAlertType
+    idraulica: MeteoAlertType | null
+    idrogeologica: MeteoAlertType | null
     mareggiate: MeteoAlertType | null
     neve: MeteoAlertType | null
-    nome: string | null
     stato_mare: MeteoAlertType | null
-    temperature_estreme: MeteoAlertType
-    temporali: MeteoAlertType
-    vento: MeteoAlertType
+    temperature_estreme: MeteoAlertType | null
+    temporali: MeteoAlertType | null
+    vento: MeteoAlertType | null
 }
 
 export const alertZones = [

@@ -1,4 +1,4 @@
-import { alertZones, MeteoAlertZone } from './../services/meteo-alerts'
+import { alertZones, MeteoAlertType, MeteoAlertZone } from './../services/meteo-alerts'
 import { BaseMeteoAlert, MeteoAlert } from '../services/meteo-alerts'
 import { omit } from 'lodash'
 
@@ -9,7 +9,22 @@ export interface ParsedMeteoAlert extends BaseMeteoAlert {
     criticZoneData: Partial<MeteoAlertZone>
 }
 
-const correctColors = ['green', null]
+const correctColors: {
+    [key in keyof MeteoAlertZone]: MeteoAlertZone[key][]
+} = {
+    ghiaccio_pioggia_gela: [null, MeteoAlertType.green],
+    idraulica: [null, MeteoAlertType.green, MeteoAlertType.yellow],
+    idrogeologica: [null, MeteoAlertType.green, MeteoAlertType.yellow],
+    mareggiate: [null],
+    neve: [null, MeteoAlertType.green],
+    stato_mare: [null],
+    temperature_estreme: [null, MeteoAlertType.green],
+    temporali: [null, MeteoAlertType.green],
+    vento: [null, MeteoAlertType.green],
+}
+
+const colorsToRemove = [null, MeteoAlertType.green]
+
 const wordToRemove = /allerta|bollettino/i
 
 export const parseMeteoAlert = (alert: MeteoAlert, zone: (typeof alertZones)[number]): ParsedMeteoAlert => {
@@ -29,16 +44,29 @@ export const parseMeteoAlert = (alert: MeteoAlert, zone: (typeof alertZones)[num
 
     alert.link = `https://allertameteo.regione.emilia-romagna.it${alert.link}`
 
-    const criticData = Object.keys(zoneData).filter((key) => !correctColors.includes(zoneData[key]))
+    const isCritic =
+        Object.keys(zoneData).filter((key) => {
+            const alertType = zoneData[key as keyof MeteoAlertZone]
+            const allowedTypes = correctColors[key as keyof MeteoAlertZone]
+
+            return allowedTypes && !allowedTypes.includes(alertType)
+        }).length > 0
+
+    const criticZoneData = Object.keys(zoneData).reduce((acc, key) => {
+        const alertType = zoneData[key as keyof MeteoAlertZone]
+
+        if (!colorsToRemove.includes(alertType)) {
+            acc[key as keyof MeteoAlertZone] = alertType
+        }
+
+        return acc
+    }, {} as Partial<MeteoAlertZone>)
 
     return {
         ...omit(alert, alertZones),
         id,
         zoneData,
-        isCritic: criticData.length > 0,
-        criticZoneData: criticData.reduce((acc, key) => {
-            acc[key] = zoneData[key]
-            return acc
-        }, {} as Partial<MeteoAlertZone>),
+        isCritic,
+        criticZoneData,
     }
 }

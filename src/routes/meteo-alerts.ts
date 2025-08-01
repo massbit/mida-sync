@@ -1,6 +1,6 @@
 import { sendNewTomorrowAlertMessage } from '../controllers/telegram'
 import { getLastAlertReport, updateLastAlertReport } from '../models/last-alert-report'
-import { getTomorrowMeteoAlert } from '../services/meteo-alerts'
+import { getMeteoAlert } from '../services/meteo-alerts'
 import { parseMeteoAlert } from '../utilites/meteo-alerts'
 
 export const registerMeteoAlertsRoutes = (fastify) => {
@@ -8,7 +8,7 @@ export const registerMeteoAlertsRoutes = (fastify) => {
         method: 'POST',
         url: '/meteo-alerts',
         handler: async (_, reply) => {
-            const tomorrowAlert = await getTomorrowMeteoAlert()
+            const tomorrowAlert = await getMeteoAlert('2025-07-28 13:00')
 
             if (!tomorrowAlert) {
                 return reply.status(204).send(undefined)
