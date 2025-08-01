@@ -1,0 +1,10 @@
+{
+    "alert": {
+        "colors": {
+            "red": "Rossa",
+            "orange": "Arancione",
+            "yellow": "Gialla",
+            "green": "Verde"
+        }
+    }
+}

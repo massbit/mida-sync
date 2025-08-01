@@ -1,11 +1,27 @@
 import Fastify from 'fastify'
 import { registerNotifireRoutes } from './routes/notifire'
 import { registerMeteoAlertsRoutes } from './routes/meteo-alerts'
+import i18next from 'i18next'
+import italian from './resources/locales/it.json'
+
+const translations = {
+    it: {
+        translation: italian,
+    },
+}
 
 export const startServer = async () => {
     const fastify = Fastify({
         logger: true,
         disableRequestLogging: true,
+    })
+
+    void i18next.init({
+        resources: translations,
+        fallbackLng: 'it',
+        interpolation: {
+            escapeValue: false,
+        },
     })
 
     fastify.get('/health', async () => {

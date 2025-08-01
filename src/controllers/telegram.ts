@@ -5,7 +5,7 @@ import { getAddressFromCoordinates, getGoogleMapsRoute } from '../services/googl
 import { getTelegramUsers } from '../models/telegram-user'
 import { MolinellaCoordinates } from '../utilites/constants'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
-import { getActualWorkShift } from '../utilites/common'
+import { getActualWorkShift, translateKey } from '../utilites/common'
 import { ParsedMeteoAlert } from '../utilites/meteo-alerts'
 
 const molinellaWord = 'MOLINELLA'
@@ -154,7 +154,7 @@ export const sendNewTomorrowAlertMessage = async (alert: ParsedMeteoAlert) => {
     const telegramUsers = await getTelegramUsers()
 
     const criticDataMessage = Object.keys(alert.criticZoneData)
-        .map((key) => `${key}: ${alert.criticZoneData[key]}`)
+        .map((key) => `${key.toUpperCase()}: ${translateKey(`alert.colors.${alert.criticZoneData[key]}`, 'it')}`)
         .join('\n')
 
     const textMessage = `⚠️ Nuova allerta meteo per domani!

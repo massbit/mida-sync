@@ -1,5 +1,6 @@
 import customMoment from '../custom-components/custom-moment'
 import { WORK_SHIFTS } from './constants'
+import i18next, { TOptions } from 'i18next'
 
 export interface Workshift {
     shift: string
@@ -53,4 +54,8 @@ export const getActualWorkShift = (isVolunteer: boolean): Workshift => {
         shift,
         night: nightShift,
     }
+}
+
+export const translateKey = (key: string, language: string, options: TOptions = {}) => {
+    return i18next.t(key, { lng: language, ...options })
 }

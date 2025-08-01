@@ -22,7 +22,5 @@ export const getTelegramUsers = async (allowTest: boolean = true): Promise<Teleg
 
     const query = `SELECT * FROM ${tableName} ${filterStatements.length > 0 ? 'WHERE ' + filterStatements.join(' AND ') : ''}`
 
-    const result = await database.query<TelegramUser>(query)
-
-    return result
+    return database.query<TelegramUser>(query)
 }

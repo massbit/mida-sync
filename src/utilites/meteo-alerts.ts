@@ -10,6 +10,7 @@ export interface ParsedMeteoAlert extends BaseMeteoAlert {
 }
 
 const correctColors = ['green', null]
+const wordToRemove = /allerta|bollettino/i
 
 export const parseMeteoAlert = (alert: MeteoAlert, zone: (typeof alertZones)[number]): ParsedMeteoAlert => {
     const zoneData = alert[zone]
@@ -24,13 +25,11 @@ export const parseMeteoAlert = (alert: MeteoAlert, zone: (typeof alertZones)[num
         throw new Error(`Invalid link format: ${alert.link}`)
     }
 
-    const id = fileName.replace('.pdf', '').replace('bollettino', '').replace('_', '/')
+    const id = fileName.replace('.pdf', '').replace('_', '/').replace(wordToRemove, '').trim()
 
     alert.link = `https://allertameteo.regione.emilia-romagna.it${alert.link}`
 
-    const criticData = Object.keys(zoneData).filter(
-        (key) => !correctColors.includes(zoneData[key])
-    )
+    const criticData = Object.keys(zoneData).filter((key) => !correctColors.includes(zoneData[key]))
 
     return {
         ...omit(alert, alertZones),
