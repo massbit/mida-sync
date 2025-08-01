@@ -27,16 +27,16 @@ const volunteerWorkHours: WorkHours = {
  * @returns The current work shift and whether it is a night shift.
  */
 export const getActualWorkShift = (isVolunteer: boolean): Workshift => {
-    const startDate = customMoment('01/01/2019', 'DD/MM/YYYY')
-    const nowDate = customMoment()
+    const startDate = customMoment('01/01/2019', 'DD/MM/YYYY').utc()
+    const nowDate = customMoment().utc()
 
     const workHours = isVolunteer ? volunteerWorkHours : permanentWorkHours
 
     // Check if it's day shift (after 8:00)
-    const shiftChanged = customMoment(workHours.start, 'HH:mm') <= nowDate
+    const shiftChanged = customMoment(workHours.start, 'HH:mm').utc() <= nowDate
 
     // Check if it's night shift (after 20:00)
-    const nightShift = customMoment(workHours.end, 'HH:mm') <= nowDate || !shiftChanged
+    const nightShift = customMoment(workHours.end, 'HH:mm').utc() <= nowDate || !shiftChanged
 
     // Get the difference in days between the two dates
     const dayDiff = nowDate.diff(startDate, 'day')
