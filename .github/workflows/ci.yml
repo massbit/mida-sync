@@ -1,0 +1,65 @@
+name: CI
+
+on: [push]
+
+env:
+    NODE_VERSION: '22'
+
+jobs:
+    build-and-test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out repository code
+              uses: actions/checkout@v3
+            - uses: actions/setup-node@v2.5.1
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  check-latest: false
+            - name: Install dependecies
+              run: yarn install --ignore-engines
+            - name: Build typescript
+              run: |
+                  yarn dist
+            - name: Run tests
+              run: |
+                  yarn test
+    push-on-production:
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out repository code
+              uses: actions/checkout@v2
+            - name: Put env variables
+              run: |
+                  echo "${{ secrets.ENV }}" >> ./.env
+            - name: Prepare directory to copy
+              run: |
+                  mkdir -p service
+                  cp -R ./src service/src
+                  cp ./cron.txt service/cron.txt
+                  cp ./docker-compose.yml service/docker-compose.yml
+                  cp ./Dockerfile service/Dockerfile
+                  cp ./package.json service/package.json
+                  cp ./yarn.lock service/yarn.lock
+                  cp ./tsconfig.json service/tsconfig.json
+                  cp ./.env service/.env
+            - name: Copy api folder to the server
+              uses: appleboy/scp-action@master
+              with:
+                  host: ${{ secrets.HOST }}
+                  username: ${{ secrets.SSH_USER }}
+                  key: ${{ secrets.PRIVATE_KEY }}
+                  strip_components: 1
+                  source: './service/*'
+                  target: 'mida-sync/'
+            - name: Update server service
+              uses: appleboy/ssh-action@master
+              with:
+                host: ${{ secrets.HOST }}
+                username: ${{ secrets.SSH_USER }}
+                key: ${{ secrets.PRIVATE_KEY }}
+                script: |
+                  cd mida-sync/
+                  docker compose build --no-cache
+                  docker compose up -d --force-recreate
+                  docker image prune

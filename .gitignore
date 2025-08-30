@@ -1,0 +1,14 @@
+# NPM
+node_modules/
+package-lock.json
+yarn.error
+yarn-error.log
+
+dist/
+.env
+.npmrc
+
+.eslintcache
+
+# IDE
+.vscode/settings.json
