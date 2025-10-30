@@ -1,5 +1,6 @@
 import { config } from '../config/config'
-import { getEstofexReport } from '../services/estofex'
+import { checkEstofexReport } from '../controllers/estofex'
+import { getEstofexImage, getEstofexReport } from '../services/estofex'
 import { getTomorrowPretempReport } from '../services/pretemp'
 import { sendPhotoMessage } from '../services/telegram'
 
@@ -16,7 +17,7 @@ export const registerForecastReportsRoutes = (fastify) => {
 
             await sendPhotoMessage(config.chat_id, tomorrowReport, 'Nuovo report Pretemp disponibile')
 
-            reply.status(200).send(tomorrowReport)
+            reply.status(204).send(undefined)
         },
     })
     fastify.route({
@@ -25,11 +26,17 @@ export const registerForecastReportsRoutes = (fastify) => {
         handler: async (_, reply) => {
             const tomorrowReport = await getEstofexReport()
 
-            if (!tomorrowReport) {
+            const isReportValid = checkEstofexReport(tomorrowReport)
+
+            if (!isReportValid) {
                 return reply.status(204).send(undefined)
             }
 
-            reply.status(200).send(tomorrowReport)
+            const estofexImage = await getEstofexImage()
+
+            await sendPhotoMessage(config.chat_id, estofexImage, 'Nuovo report Estofex disponibile')
+
+            reply.status(204).send(undefined)
         },
     })
 }

@@ -23,8 +23,6 @@ export const getPretempReport = async (date: moment.Moment) => {
         }
 
         image = url
-
-        // image = await axios.get(url).then((response) => response.data)
     }
 
     return image
