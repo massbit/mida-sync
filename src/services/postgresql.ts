@@ -92,4 +92,23 @@ export default class PostgreSQL {
             throw new Error(error)
         }
     }
+
+    public async edit<T>(tableName: string, object: Omit<Partial<T>, 'id'>, objectId: number) {
+        const keys = Object.keys(object).map((key, index) => `${checkAndTransformKey(key)} = $${index + 1}`)
+
+        const values: any[] = Object.values(object)
+
+        const query = `UPDATE ${checkAndTransformKey(tableName)} ${tableName} SET ${keys} WHERE id = $${keys.length + 1}  RETURNING *`
+
+        const rows = await this.query<T>(query, [...values, objectId])
+
+        return rows[0]
+    }
+}
+
+// Add backtick to sql reserved keywords
+export const checkAndTransformKey = (key: string): string => {
+    const protectedKeywords = ['key', 'table', 'group', 'from', 'desc', 'condition', 'before', 'grant', 'user', 'is']
+
+    return protectedKeywords.includes(key) ? `"${key}"` : key
 }

@@ -1,4 +1,4 @@
-import { sendNewTomorrowAlertMessage } from '../controllers/telegram'
+import { sendNewTomorrowAlertMessage } from '../utilites/telegram'
 import { getLastAlertReport, updateLastAlertReport } from '../models/last-alert-report'
 import { getTomorrowMeteoAlert } from '../services/meteo-alerts'
 import { parseMeteoAlert } from '../utilites/meteo-alerts'
@@ -23,7 +23,10 @@ export const registerMeteoAlertsRoutes = (fastify) => {
                     sendNewTomorrowAlertMessage(parsedAlert)
                 }
 
-                await updateLastAlertReport(parsedAlert.id)
+                await updateLastAlertReport({
+                    report_id: parsedAlert.id,
+                    is_critic: parsedAlert.isCritic,
+                })
             }
 
             reply.status(200).send(parsedAlert)

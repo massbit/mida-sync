@@ -29,6 +29,6 @@ export const getPretempReport = async (date: moment.Moment) => {
 }
 
 export const getTomorrowPretempReport = async () => {
-    const tomorrow = customMoment().subtract(1, 'day')
+    const tomorrow = customMoment().add(1, 'day')
     return getPretempReport(tomorrow)
 }
