@@ -23,7 +23,10 @@ RUN crontab -r || true
 RUN crontab /etc/cron.d/mida-cron
 
 # Create log directory for cron
-RUN mkdir -p /var/log/cron && touch /var/log/cron/meteo_alerts.log
+RUN mkdir -p /var/log/cron
+RUN touch /var/log/cron/meteo_alerts.log
+RUN touch /var/log/cron/check_pretemp_report.log
+RUN touch /var/log/cron/check_estofex_report.log
 
 EXPOSE 3000
 

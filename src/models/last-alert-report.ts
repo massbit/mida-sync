@@ -5,7 +5,12 @@ const tableName = 'django_models_latestreport'
 export interface LastAlertReport {
     id: number
     report_id: string
+    is_critic: boolean
+    estofex_sent: boolean
+    pretemp_sent: boolean
 }
+
+type EditableLastAlertReport = Omit<LastAlertReport, 'id'>
 
 export const getLastAlertReport = async (): Promise<LastAlertReport> => {
     const query = `SELECT * FROM ${tableName} `
@@ -19,8 +24,6 @@ export const getLastAlertReport = async (): Promise<LastAlertReport> => {
     return reports[0]
 }
 
-export const updateLastAlertReport = async (reportId: string): Promise<void> => {
-    const query = `UPDATE ${tableName} SET report_id = $1 WHERE id = 1`
-
-    await database.query(query, [reportId])
+export const updateLastAlertReport = async (report: Partial<EditableLastAlertReport>): Promise<void> => {
+    await database.edit<LastAlertReport>(tableName, report, 1)
 }

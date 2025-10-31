@@ -1,7 +1,7 @@
 import { sendTelegramMessage } from '../services/telegram'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
-import { translateKey } from '../utilites/common'
-import { ParsedMeteoAlert } from '../utilites/meteo-alerts'
+import { translateKey } from './common'
+import { ParsedMeteoAlert } from './meteo-alerts'
 import { config } from '../config/config'
 
 const separator = '--------------------------------'
