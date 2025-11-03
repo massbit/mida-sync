@@ -93,6 +93,22 @@ export default class PostgreSQL {
         }
     }
 
+    public async create<T = any>(tableName: string, object: Omit<T, 'id'>) {
+        const keys = Object.keys(object)
+            .map((key) => checkAndTransformKey(key))
+            .join(', ')
+
+        const values: any[] = Object.values(object)
+
+        const query = `INSERT INTO ${checkAndTransformKey(
+            tableName
+        )} (${keys}) VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING *`
+
+        const rows = await this.query<T>(query, values)
+
+        return rows[0]
+    }
+
     public async edit<T>(tableName: string, object: Omit<Partial<T>, 'id'>, objectId: number) {
         const keys = Object.keys(object).map((key, index) => `${checkAndTransformKey(key)} = $${index + 1}`)
 
@@ -103,6 +119,12 @@ export default class PostgreSQL {
         const rows = await this.query<T>(query, [...values, objectId])
 
         return rows[0]
+    }
+
+    public async delete(tableName: string, itemId: number) {
+        const query = `DELETE FROM ${checkAndTransformKey(tableName)} WHERE id = $1`
+
+        await this.query<void>(query, [itemId])[0]
     }
 }
 

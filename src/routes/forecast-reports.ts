@@ -3,7 +3,7 @@ import { checkEstofexReport } from '../utilites/estofex'
 import { getEstofexImage, getEstofexReport } from '../services/estofex'
 import { getTomorrowPretempReport } from '../services/pretemp'
 import { sendPhotoMessage } from '../services/telegram'
-import { getLastAlertReport, updateLastAlertReport } from '../models/last-alert-report'
+import { getLastAlertReport, updateLastAlertReport } from '../models/alert-report'
 
 export const registerForecastReportsRoutes = (fastify) => {
     fastify.route({
@@ -24,9 +24,12 @@ export const registerForecastReportsRoutes = (fastify) => {
 
             await sendPhotoMessage(config.chat_id, tomorrowReport, 'Nuovo report Pretemp disponibile')
 
-            await updateLastAlertReport({
-                pretemp_sent: true,
-            })
+            await updateLastAlertReport(
+                {
+                    pretemp_sent: true,
+                },
+                lastAlertReport.id
+            )
 
             reply.status(204).send(undefined)
         },
@@ -53,9 +56,12 @@ export const registerForecastReportsRoutes = (fastify) => {
 
             await sendPhotoMessage(config.chat_id, estofexImage, 'Nuovo report Estofex disponibile')
 
-            await updateLastAlertReport({
-                estofex_sent: true,
-            })
+            await updateLastAlertReport(
+                {
+                    estofex_sent: true,
+                },
+                lastAlertReport.id
+            )
 
             reply.status(204).send(undefined)
         },
