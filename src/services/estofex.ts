@@ -33,7 +33,9 @@ export const getEstofexImage = async () => {
 
     try {
         await axios.head(imageUrl)
-    } catch {}
+    } catch {
+        throw new Error('Estofex image not available')
+    }
 
     return imageUrl
 }
