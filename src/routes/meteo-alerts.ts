@@ -1,5 +1,5 @@
 import { sendNewTomorrowAlertMessage } from '../utilites/telegram'
-import { getLastAlertReport, updateLastAlertReport } from '../models/last-alert-report'
+import { createAlertReport, getLastAlertReport } from '../models/alert-report'
 import { getTomorrowMeteoAlert } from '../services/meteo-alerts'
 import { parseMeteoAlert } from '../utilites/meteo-alerts'
 
@@ -18,14 +18,20 @@ export const registerMeteoAlertsRoutes = (fastify) => {
 
             const lastAlertReport = await getLastAlertReport()
 
-            if (lastAlertReport.report_id !== parsedAlert.id) {
+            if (lastAlertReport.report_number !== parsedAlert.id) {
                 if (parsedAlert.isCritic) {
                     sendNewTomorrowAlertMessage(parsedAlert)
                 }
 
-                await updateLastAlertReport({
-                    report_id: parsedAlert.id,
+                await createAlertReport({
+                    report_number: parsedAlert.id,
                     is_critic: parsedAlert.isCritic,
+                    estofex_sent: false,
+                    pretemp_sent: false,
+                    created_on: new Date().toISOString(),
+                    starts_on: parsedAlert.dataInizio,
+                    ends_on: parsedAlert.dataFine,
+                    emitted_on: parsedAlert.dataEmissione,
                 })
             }
 

@@ -2,6 +2,7 @@ import axios from 'axios'
 import moment from 'moment'
 import { toFirstLetterUpperCase } from '../utilites/common'
 import customMoment from '../custom-components/custom-moment'
+import logger from '../logger'
 
 export const getPretempReport = async (date: moment.Moment) => {
     const formattedDate = date.format('DD_MM_YYYY')
@@ -23,6 +24,10 @@ export const getPretempReport = async (date: moment.Moment) => {
         }
 
         image = url
+    }
+
+    if (!image) {
+        logger.warn({ date: formattedDate }, 'Pretemp report unavailable')
     }
 
     return image

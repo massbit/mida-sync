@@ -1,9 +1,10 @@
-import Fastify from 'fastify'
+import Fastify, { type FastifyServerOptions } from 'fastify'
 import { registerMeteoAlertsRoutes } from './routes/meteo-alerts'
 import i18next from 'i18next'
 import italian from './resources/locales/it.json'
 import { registerTestMessageRoutes } from './routes/test-message'
 import { registerForecastReportsRoutes } from './routes/forecast-reports'
+import logger from './logger'
 
 const translations = {
     it: {
@@ -13,7 +14,7 @@ const translations = {
 
 export const startServer = async () => {
     const fastify = Fastify({
-        logger: true,
+        logger: logger as unknown as FastifyServerOptions['logger'],
         disableRequestLogging: true,
     })
 
@@ -36,4 +37,6 @@ export const startServer = async () => {
     await fastify.listen({
         port: 3000,
     })
+
+    logger.info('HTTP server started on port 3000')
 }

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { XMLParser } from 'fast-xml-parser'
+import logger from '../logger'
 
 export interface EstofexReport {
     forecast?: Partial<{
@@ -19,13 +20,18 @@ export interface EstofexReport {
 export const getEstofexReport = async () => {
     const xmlUrl = 'https://www.estofex.org/cgi-bin/polygon/showforecast.cgi?xml=yes'
 
-    const xmlData = await axios.get(xmlUrl).then((response) => response.data)
+    try {
+        const xmlData = await axios.get(xmlUrl).then((response) => response.data)
 
-    const parser = new XMLParser({
-        ignoreAttributes: false,
-    })
+        const parser = new XMLParser({
+            ignoreAttributes: false,
+        })
 
-    return parser.parse(xmlData) as EstofexReport
+        return parser.parse(xmlData) as EstofexReport
+    } catch (error) {
+        logger.error({ err: error }, 'Failed to fetch Estofex report')
+        throw error
+    }
 }
 
 export const getEstofexImage = async () => {
@@ -33,7 +39,10 @@ export const getEstofexImage = async () => {
 
     try {
         await axios.head(imageUrl)
-    } catch {}
+    } catch (error) {
+        logger.warn({ err: error }, 'Estofex image not available')
+        throw new Error('Estofex image not available')
+    }
 
     return imageUrl
 }
