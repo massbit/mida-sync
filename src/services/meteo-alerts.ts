@@ -1,5 +1,6 @@
 import axios from 'axios'
 import customMoment from '../custom-components/custom-moment'
+import logger from '../logger'
 
 export enum MeteoAlertType {
     green = 'green',
@@ -69,11 +70,16 @@ export const getMeteoAlert = async (date?: string): Promise<MeteoAlert | undefin
         baseUrl += `?data=${date}`
     }
 
-    const response = await axios.get<MeteoAlert | {}>(baseUrl).then((response) => response.data)
+    try {
+        const response = await axios.get<MeteoAlert | {}>(baseUrl).then((response) => response.data)
 
-    if (Object.keys(response).length === 0) {
-        return undefined
+        if (Object.keys(response).length === 0) {
+            return undefined
+        }
+
+        return response as MeteoAlert
+    } catch (error) {
+        logger.error({ err: error, date }, 'Failed to retrieve meteo alert')
+        throw error
     }
-
-    return response as MeteoAlert
 }
