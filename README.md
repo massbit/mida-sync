@@ -2,7 +2,7 @@
 
 Mida-Sync is a backend service designed to monitor, aggregate, and notify meteorological alerts and reports. The system analyzes alerts issued by the Emilia-Romagna Region, integrating them with convective forecasts at national and European levels, to send timely and detailed notifications via Telegram.
 
-## 🌟 Implemented Products and Services
+## Implemented Products and Services
 
 The system interfaces with various official and unofficial sources to provide a complete meteorological overview:
 
@@ -21,7 +21,7 @@ The system interfaces with various official and unofficial sources to provide a 
    - **Details:** Dynamically retrieves forecast maps for the following day via the Pretemp archive.
    - **Notification:** If conditions require it (presence of ongoing alerts), it sends the thunderstorm forecast image to the Telegram channel.
 
-## 🕒 Scheduled Tasks (Crons)
+## Scheduled Tasks (Crons)
 
 The application relies on scheduled tasks (crons) to automate the weather monitoring flow:
 
@@ -32,16 +32,19 @@ The application relies on scheduled tasks (crons) to automate the weather monito
 - **Estofex Report Check**
   - Verifies and sends the Estofex map for the following day, following the same conditional logic based on ongoing alerts.
 
-## ⚙️ Configuration and Installation
+## Configuration and Installation
 
 ### Prerequisites
+
 - Node.js (v22+)
 - PostgreSQL
 - Docker (optional, for deployment)
 - A valid Telegram Bot token and a destination Chat ID.
 
 ### Environment Variables (`.env`)
+
 The project uses a `.env` file for configuration. Required keys include:
+
 - PostgreSQL Database credentials (Host, User, Password, DB Name)
 - `TELEGRAM_TOKEN`: Telegram Bot token.
 - `CHAT_ID`: ID of the Telegram chat or channel where alerts will be sent.
@@ -66,7 +69,7 @@ npm run dist
 npm run deploy
 ```
 
-## 🧪 Testing
+## Testing
 
 The project uses `mocha` and `chai` for testing. Tests can be run with:
 
