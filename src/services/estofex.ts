@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { http } from './http'
 import { XMLParser } from 'fast-xml-parser'
 import logger from '../logger'
 
@@ -21,7 +21,7 @@ export const getEstofexReport = async () => {
     const xmlUrl = 'https://www.estofex.org/cgi-bin/polygon/showforecast.cgi?xml=yes'
 
     try {
-        const xmlData = await axios.get(xmlUrl).then((response) => response.data)
+        const xmlData = await http.get(xmlUrl).then((response) => response.data)
 
         const parser = new XMLParser({
             ignoreAttributes: false,
@@ -38,7 +38,7 @@ export const getEstofexImage = async () => {
     const imageUrl = 'https://www.estofex.org/forecasts/tempmap/.png'
 
     try {
-        await axios.head(imageUrl)
+        await http.head(imageUrl)
     } catch (error) {
         logger.warn({ err: error }, 'Estofex image not available')
         throw new Error('Estofex image not available')

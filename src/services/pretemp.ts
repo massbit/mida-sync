@@ -1,6 +1,6 @@
-import axios from 'axios'
 import moment from 'moment'
-import { toFirstLetterUpperCase } from '../utilites/common'
+import { http } from './http'
+import { toFirstLetterUpperCase } from '../utilities/common'
 import customMoment from '../custom-components/custom-moment'
 import logger from '../logger'
 
@@ -18,7 +18,7 @@ export const getPretempReport = async (date: moment.Moment) => {
         const url = urls[i]
 
         try {
-            await axios.head(url)
+            await http.head(url)
         } catch {
             continue
         }

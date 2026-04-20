@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import { afterEach, beforeEach, describe, it } from 'mocha'
 import sinon, { SinonStub } from 'sinon'
-import axios from 'axios'
 import { XMLParser } from 'fast-xml-parser'
+import { http } from '../../src/services/http'
 import { getEstofexImage, getEstofexReport } from '../../src/services/estofex'
 
 describe('tests/services/estofex', () => {
@@ -11,7 +11,7 @@ describe('tests/services/estofex', () => {
         let parserStub: SinonStub
 
         beforeEach(() => {
-            axiosGetStub = sinon.stub(axios, 'get')
+            axiosGetStub = sinon.stub(http, 'get')
             parserStub = sinon.stub(XMLParser.prototype, 'parse')
         })
 
@@ -39,7 +39,7 @@ describe('tests/services/estofex', () => {
         let axiosHeadStub: SinonStub
 
         beforeEach(() => {
-            axiosHeadStub = sinon.stub(axios, 'head')
+            axiosHeadStub = sinon.stub(http, 'head')
         })
 
         afterEach(() => {

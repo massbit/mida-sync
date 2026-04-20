@@ -43,11 +43,20 @@ The application relies on scheduled tasks (crons) to automate the weather monito
 
 ### Environment Variables (`.env`)
 
-The project uses a `.env` file for configuration. Required keys include:
+The project uses a `.env` file for configuration. Copy `.env.example` to `.env` and fill in the values:
+
+```bash
+cp .env.example .env
+```
+
+Required keys include:
 
 - PostgreSQL Database credentials (Host, User, Password, DB Name)
 - `TELEGRAM_TOKEN`: Telegram Bot token.
 - `CHAT_ID`: ID of the Telegram chat or channel where alerts will be sent.
+- `ALERT_ZONE`: alert zone code to monitor (default `D1`).
+
+The `.env` file is git-ignored and is injected into the container at runtime via `docker-compose.yml` (`env_file`). It is **not** baked into the Docker image. If credentials leak, rotate the Telegram bot token via [@BotFather](https://t.me/BotFather) and reset the PostgreSQL password.
 
 ### Development Setup
 

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { http } from './http'
 import customMoment from '../custom-components/custom-moment'
 import logger from '../logger'
 
@@ -71,7 +71,7 @@ export const getMeteoAlert = async (date?: string): Promise<MeteoAlert | undefin
     }
 
     try {
-        const response = await axios.get<MeteoAlert | {}>(baseUrl).then((response) => response.data)
+        const response = await http.get<MeteoAlert | {}>(baseUrl).then((response) => response.data)
 
         if (Object.keys(response).length === 0) {
             return undefined

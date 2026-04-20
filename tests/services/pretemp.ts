@@ -2,17 +2,17 @@ import { expect } from 'chai'
 import { afterEach, beforeEach, describe, it } from 'mocha'
 import sinon, { SinonFakeTimers, SinonStub } from 'sinon'
 import moment from 'moment'
-import axios from 'axios'
+import { http } from '../../src/services/http'
 import { getPretempReport, getTomorrowPretempReport } from '../../src/services/pretemp'
 import customMoment from '../../src/custom-components/custom-moment'
-import { toFirstLetterUpperCase } from '../../src/utilites/common'
+import { toFirstLetterUpperCase } from '../../src/utilities/common'
 
 describe('tests/services/pretemp', () => {
     describe('getPretempReport', () => {
         let axiosHeadStub: SinonStub
 
         beforeEach(() => {
-            axiosHeadStub = sinon.stub(axios, 'head')
+            axiosHeadStub = sinon.stub(http, 'head')
         })
 
         afterEach(() => {
@@ -83,7 +83,7 @@ describe('tests/services/pretemp', () => {
         let clock: SinonFakeTimers
 
         beforeEach(() => {
-            axiosHeadStub = sinon.stub(axios, 'head')
+            axiosHeadStub = sinon.stub(http, 'head')
             clock = sinon.useFakeTimers({
                 now: Date.UTC(2024, 4, 9, 12, 0, 0),
             })

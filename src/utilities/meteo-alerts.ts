@@ -27,8 +27,8 @@ const colorsToRemove = [null, MeteoAlertType.green]
 
 const wordToRemove = /allerta|bollettino/i
 
-export const parseMeteoAlert = (alert: MeteoAlert, zone: (typeof alertZones)[number]): ParsedMeteoAlert => {
-    const zoneData = alert[zone]
+export const parseMeteoAlert = (alert: MeteoAlert, zone: string): ParsedMeteoAlert => {
+    const zoneData = alert[zone as (typeof alertZones)[number]]
 
     if (!zoneData) {
         throw new Error(`Zone ${zone} not found in alert data`)
@@ -40,7 +40,7 @@ export const parseMeteoAlert = (alert: MeteoAlert, zone: (typeof alertZones)[num
         throw new Error(`Invalid link format: ${alert.link}`)
     }
 
-    const id = fileName.replace('.pdf', '').replace('_', '/').replace(wordToRemove, '').trim()
+    const id = fileName.replace('.pdf', '').replace(/_/g, '/').replace(wordToRemove, '').trim()
 
     alert.link = `https://allertameteo.regione.emilia-romagna.it${alert.link}`
 

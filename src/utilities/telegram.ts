@@ -26,7 +26,7 @@ export const sendNewTomorrowAlertMessage = async (alert: ParsedMeteoAlert) => {
 📅 Data inizio: ${alert.dataInizio}
 📅 Data fine: ${alert.dataFine}
 ${separator}
-Zona D1:
+Zona ${config.alert_zone}:
 ${criticDataMessage}
 ${separator}
 📜 Descrizione: ${alert.descrizionemeteo}

@@ -13,4 +13,5 @@ export const developmentConfig: Config = {
     },
     telegram_token: process.env.TELEGRAM_2_TOKEN as string,
     chat_id: process.env.CHAT_ID as string,
+    alert_zone: process.env.ALERT_ZONE || 'D1',
 }

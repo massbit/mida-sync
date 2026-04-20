@@ -1,4 +1,4 @@
-import Fastify from 'fastify'
+import Fastify, { FastifyInstance } from 'fastify'
 import { registerMeteoAlertsRoutes } from './routes/meteo-alerts'
 import i18next from 'i18next'
 import italian from './resources/locales/it.json'
@@ -12,10 +12,21 @@ const translations = {
     },
 }
 
-export const startServer = async () => {
+export const startServer = async (): Promise<FastifyInstance> => {
     const fastify = Fastify({
         loggerInstance: logger,
         disableRequestLogging: true,
+        bodyLimit: 1024,
+        requestTimeout: 15000,
+    })
+
+    fastify.setErrorHandler((err, request, reply) => {
+        request.log.error({ err }, 'Unhandled error in route handler')
+        if (err.validation) {
+            reply.status(400).send({ error: 'Bad Request' })
+            return
+        }
+        reply.status(err.statusCode || 500).send({ error: 'Internal Server Error' })
     })
 
     void i18next.init({
@@ -30,13 +41,17 @@ export const startServer = async () => {
         return { status: 'ok' }
     })
 
-    registerTestMessageRoutes(fastify)
-    registerMeteoAlertsRoutes(fastify)
-    registerForecastReportsRoutes(fastify)
+    const app = fastify as unknown as FastifyInstance
+    registerTestMessageRoutes(app)
+    registerMeteoAlertsRoutes(app)
+    registerForecastReportsRoutes(app)
 
     await fastify.listen({
+        host: '127.0.0.1',
         port: 3000,
     })
 
     logger.info('HTTP server started on port 3000')
+
+    return app
 }

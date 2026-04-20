@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { afterEach, beforeEach, describe, it } from 'mocha'
 import sinon, { SinonFakeTimers } from 'sinon'
-import { checkEstofexReport } from '../../src/utilites/estofex'
+import { checkEstofexReport } from '../../src/utilities/estofex'
 import { EstofexReport } from '../../src/services/estofex'
 
 describe('tests/utilities/estofex.ts', () => {
