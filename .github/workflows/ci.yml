@@ -25,6 +25,7 @@ jobs:
                   yarn test
     push-on-production:
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        needs: build-and-test
         runs-on: ubuntu-latest
         steps:
             - name: Check out repository code
@@ -62,4 +63,4 @@ jobs:
                   cd mida-sync/
                   docker compose build --no-cache
                   docker compose up -d --force-recreate
-                  docker image prune
+                  docker image prune -f
