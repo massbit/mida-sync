@@ -8,7 +8,7 @@ describe('tests/services/meteo-alerts', () => {
     describe('getMeteoAlert', () => {
         let axiosGetStub: SinonStub
         const baseUrl =
-            'https://allertameteo.regione.emilia-romagna.it/datiTempoReale-prevPiog-portlet/get-stato-allerta'
+            'https://allertameteo.regione.emilia-romagna.it/o/get-stato-allerta'
 
         beforeEach(() => {
             axiosGetStub = sinon.stub(axios, 'get')
