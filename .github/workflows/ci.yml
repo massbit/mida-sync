@@ -61,5 +61,6 @@ jobs:
                 script: |
                   cd mida-sync/
                   docker compose build --no-cache
-                  docker compose up -d --force-recreate
-                  docker image prune -f
+                  docker rm -f mida-sync 2>/dev/null || true
+                  docker compose up -d --force-recreate --remove-orphans
+                  docker image prune -f || true
