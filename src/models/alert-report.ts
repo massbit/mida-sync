@@ -32,6 +32,10 @@ export const createAlertReport = async (report: EditableAlertReport): Promise<Al
     return database.create<AlertReport>(tableName, report)
 }
 
+export const createAlertReportIfNew = async (report: EditableAlertReport): Promise<AlertReport | undefined> => {
+    return database.createOrIgnore<AlertReport>(tableName, report, 'report_number')
+}
+
 export const updateLastAlertReport = async (report: Partial<EditableAlertReport>, id: number): Promise<AlertReport> => {
     return database.edit<AlertReport>(tableName, report, id)
 }

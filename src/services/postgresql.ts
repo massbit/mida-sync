@@ -1,5 +1,6 @@
 import { Pool } from 'pg'
 import { database } from '..'
+import logger from '../logger'
 
 export interface DatabaseConfig {
     user: string
@@ -26,7 +27,7 @@ export default class PostgreSQL {
         this.config = config
 
         this.pool.on('error', (err) => {
-            console.error('Error:', err)
+            logger.error({ err }, 'PostgreSQL pool error')
         })
     }
 
@@ -34,9 +35,7 @@ export default class PostgreSQL {
     async start(): Promise<void> {
         await database.query('SELECT 1', [])
 
-        console.log(`PostgreSQL connection established successfully to ${this.config.database}.`)
-
-        return undefined
+        logger.info({ database: this.config.database }, 'PostgreSQL connection established')
     }
 
     async stop(): Promise<void> {
@@ -44,55 +43,17 @@ export default class PostgreSQL {
     }
 
     async query<ResultObject = any>(query: string, values?: QueryValue[], options?: OperationOptions) {
-        const queryPromise = async (): Promise<ResultObject[]> => {
-            return new Promise((resolve, reject) => {
-                try {
-                    this.pool.query(query, values !== undefined ? values : [], (error, response) => {
-                        if (error) {
-                            console.log('Failed query: ', query)
-                            console.log('With these values: ', values)
-                            console.log('error 1', error)
-                            reject(error)
-                            return
-                        }
-
-                        if (options && options.showQuery) {
-                            console.log('Executed query: ', query)
-                        }
-
-                        const results = response.rows
-
-                        try {
-                            const responseData: ResultObject[] = JSON.parse(JSON.stringify(results))
-
-                            if (!Array.isArray(responseData)) {
-                                const parsedResponseData: ResultObject[] = [JSON.parse(JSON.stringify(results))]
-
-                                resolve(parsedResponseData)
-                            }
-
-                            resolve(responseData)
-                        } catch (error) {
-                            console.log('query response: ', results)
-                            console.log('catch error: ', error)
-                            reject(error)
-                            console.log('error 2', error)
-                        }
-                    })
-                } catch (error) {
-                    console.log('catch error: ', error)
-                    console.log('error 3', error)
-                    reject(error)
-                }
-            })
-        }
-
         try {
-            const rows = await queryPromise()
+            const response = await this.pool.query(query, values !== undefined ? values : [])
 
-            return rows
-        } catch (error: any) {
-            throw new Error(error)
+            if (options?.showQuery) {
+                logger.debug({ query }, 'Executed query')
+            }
+
+            return response.rows as ResultObject[]
+        } catch (err) {
+            logger.error({ err, query, values }, 'Query failed')
+            throw err
         }
     }
 
@@ -112,12 +73,32 @@ export default class PostgreSQL {
         return rows[0]
     }
 
+    public async createOrIgnore<T = any>(
+        tableName: string,
+        object: Omit<T, 'id'>,
+        conflictTarget: string
+    ): Promise<T | undefined> {
+        const keys = Object.keys(object)
+            .map((key) => checkAndTransformKey(key))
+            .join(', ')
+
+        const values: any[] = Object.values(object)
+
+        const query = `INSERT INTO ${checkAndTransformKey(tableName)} (${keys}) VALUES (${values
+            .map((_, i) => `$${i + 1}`)
+            .join(', ')}) ON CONFLICT (${checkAndTransformKey(conflictTarget)}) DO NOTHING RETURNING *`
+
+        const rows = await this.query<T>(query, values)
+
+        return rows[0]
+    }
+
     public async edit<T>(tableName: string, object: Omit<Partial<T>, 'id'>, objectId: number) {
         const keys = Object.keys(object).map((key, index) => `${checkAndTransformKey(key)} = $${index + 1}`)
 
         const values: any[] = Object.values(object)
 
-        const query = `UPDATE ${checkAndTransformKey(tableName)} ${tableName} SET ${keys} WHERE id = $${keys.length + 1}  RETURNING *`
+        const query = `UPDATE ${checkAndTransformKey(tableName)} SET ${keys} WHERE id = $${keys.length + 1} RETURNING *`
 
         const rows = await this.query<T>(query, [...values, objectId])
 
@@ -127,11 +108,10 @@ export default class PostgreSQL {
     public async delete(tableName: string, itemId: number) {
         const query = `DELETE FROM ${checkAndTransformKey(tableName)} WHERE id = $1`
 
-        await this.query<void>(query, [itemId])[0]
+        await this.query<void>(query, [itemId])
     }
 }
 
-// Add backtick to sql reserved keywords
 export const checkAndTransformKey = (key: string): string => {
     const protectedKeywords = ['key', 'table', 'group', 'from', 'desc', 'condition', 'before', 'grant', 'user', 'is']
 

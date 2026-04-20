@@ -1,12 +1,16 @@
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { sendTelegramMessage } from '../services/telegram'
 import { config } from '../config/config'
 
-export const registerTestMessageRoutes = (fastify) => {
+export const registerTestMessageRoutes = (fastify: FastifyInstance) => {
     fastify.route({
         method: 'POST',
         url: '/test-message',
-        handler: async (_, reply) => {
+        schema: {
+            body: { type: 'object', additionalProperties: false, maxProperties: 0 },
+        },
+        handler: async (_request: FastifyRequest, reply: FastifyReply) => {
             const buttons: InlineKeyboardButton[][] = [
                 [
                     { text: '1', url: 'https://google.com' },

@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { toFirstLetterUpperCase } from '../../src/utilites/common'
+import { toFirstLetterUpperCase } from '../../src/utilities/common'
 
 describe('tests/utilities/common.ts', () => {
     describe('toFirstLetterUpperCase', () => {

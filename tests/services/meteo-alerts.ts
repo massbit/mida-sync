@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { afterEach, beforeEach, describe, it } from 'mocha'
 import sinon, { SinonStub } from 'sinon'
-import axios from 'axios'
+import { http } from '../../src/services/http'
 import { getMeteoAlert, MeteoAlert } from '../../src/services/meteo-alerts'
 
 describe('tests/services/meteo-alerts', () => {
@@ -11,7 +11,7 @@ describe('tests/services/meteo-alerts', () => {
             'https://allertameteo.regione.emilia-romagna.it/o/get-stato-allerta'
 
         beforeEach(() => {
-            axiosGetStub = sinon.stub(axios, 'get')
+            axiosGetStub = sinon.stub(http, 'get')
         })
 
         afterEach(() => {

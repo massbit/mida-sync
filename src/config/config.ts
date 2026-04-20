@@ -11,6 +11,7 @@ export interface Config {
     database: DatabaseConfig
     telegram_token: string
     chat_id: string
+    alert_zone: string
 }
 
 export const getNodeEnv = (): NodeEnv => process.env.NODE_ENV as NodeEnv

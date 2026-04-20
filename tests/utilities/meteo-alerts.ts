@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
-import { parseMeteoAlert } from '../../src/utilites/meteo-alerts'
+import { parseMeteoAlert } from '../../src/utilities/meteo-alerts'
 import { alertZones, MeteoAlertType } from '../../src/services/meteo-alerts'
 
 describe('tests/utilities/meteo-alerts.ts', () => {
@@ -54,8 +54,8 @@ describe('tests/utilities/meteo-alerts.ts', () => {
 
             const parsed = parseMeteoAlert(alert, zone)
 
-            // id: 'allerta_123_45' -> remove .pdf -> 'allerta_123_45' -> replace first '_' -> 'allerta/123_45' -> remove 'allerta' -> '/123_45'
-            expect(parsed.id).to.equal('/123_45')
+            // id: 'allerta_123_45' -> remove .pdf -> 'allerta_123_45' -> replace all '_' -> 'allerta/123/45' -> remove 'allerta' -> '/123/45'
+            expect(parsed.id).to.equal('/123/45')
 
             // link must be prefixed with the base URL
             expect(parsed.link).to.equal(`https://allertameteo.regione.emilia-romagna.it${originalLink}`)

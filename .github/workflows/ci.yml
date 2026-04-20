@@ -37,7 +37,6 @@ jobs:
               run: |
                   mkdir -p service
                   cp -R ./src service/src
-                  cp ./cron.txt service/cron.txt
                   cp ./docker-compose.yml service/docker-compose.yml
                   cp ./Dockerfile service/Dockerfile
                   cp ./package.json service/package.json
