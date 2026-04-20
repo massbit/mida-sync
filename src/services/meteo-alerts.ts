@@ -64,7 +64,7 @@ export const getTomorrowMeteoAlert = async (): Promise<MeteoAlert | undefined> =
 }
 
 export const getMeteoAlert = async (date?: string): Promise<MeteoAlert | undefined> => {
-    let baseUrl = 'https://allertameteo.regione.emilia-romagna.it/datiTempoReale-prevPiog-portlet/get-stato-allerta'
+    let baseUrl = 'https://allertameteo.regione.emilia-romagna.it/o/get-stato-allerta'
 
     if (date) {
         baseUrl += `?data=${date}`
