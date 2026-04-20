@@ -18,9 +18,12 @@ export interface OperationOptions {
 
 export default class PostgreSQL {
     protected pool: Pool
+    protected config: DatabaseConfig
 
     constructor(config: DatabaseConfig) {
         this.pool = new Pool(config)
+
+        this.config = config
 
         this.pool.on('error', (err) => {
             console.error('Error:', err)
@@ -31,7 +34,7 @@ export default class PostgreSQL {
     async start(): Promise<void> {
         await database.query('SELECT 1', [])
 
-        console.log('PostgreSQL connection established successfully.')
+        console.log(`PostgreSQL connection established successfully to ${this.config.database}.`)
 
         return undefined
     }
