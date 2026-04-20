@@ -1,4 +1,4 @@
-import Fastify, { type FastifyServerOptions } from 'fastify'
+import Fastify from 'fastify'
 import { registerMeteoAlertsRoutes } from './routes/meteo-alerts'
 import i18next from 'i18next'
 import italian from './resources/locales/it.json'
@@ -14,7 +14,7 @@ const translations = {
 
 export const startServer = async () => {
     const fastify = Fastify({
-        logger: logger as unknown as FastifyServerOptions['logger'],
+        loggerInstance: logger,
         disableRequestLogging: true,
     })
 
