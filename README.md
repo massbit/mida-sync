@@ -21,6 +21,11 @@ The system interfaces with various official and unofficial sources to provide a 
    - **Details:** Dynamically retrieves forecast maps for the following day via the Pretemp archive.
    - **Notification:** If conditions require it (presence of ongoing alerts), it sends the thunderstorm forecast image to the Telegram channel.
 
+4. **River levels (Allerta Meteo hydrometric stations)**
+   - **Feature:** Monitoring of water levels at configured hydrometric stations.
+   - **Details:** Periodically polls the Allerta Meteo time-series endpoint for each registered station and compares the latest reading against operator-defined thresholds (`soglia1`, `soglia2`, `soglia3`). Station metadata and thresholds live in the `rivers` table; each check is appended to `river_levels`.
+   - **Notification:** Sends a Telegram message only on crossing events — when a reading rises above or falls below a threshold relative to the previous check.
+
 ## Scheduled Tasks (Crons)
 
 The application relies on scheduled tasks (crons) to automate the weather monitoring flow:
@@ -31,6 +36,28 @@ The application relies on scheduled tasks (crons) to automate the weather monito
   - Verifies and sends the Pretemp map for the following day, provided there is an ongoing alert and the map hasn't been sent yet.
 - **Estofex Report Check**
   - Verifies and sends the Estofex map for the following day, following the same conditional logic based on ongoing alerts.
+- **River Levels Check**
+  - Every 5 minutes, for each row in the `rivers` table, fetches the latest hydrometric reading and appends it to `river_levels`. Sends a Telegram message only when the reading crosses one of the configured thresholds since the previous check.
+
+## Database bootstrap
+
+Schema is applied manually (no migration tooling). The required tables are in [sql/rivers.sql](sql/rivers.sql):
+
+```bash
+psql "$DATABASE_URL" -f sql/rivers.sql
+```
+
+## River stations CRUD
+
+Stations are managed via HTTP (port 3000):
+
+- `GET /rivers` — list registered stations
+- `POST /rivers` — create; body `{ station_id, river_name, station_name, soglia1?, soglia2?, soglia3? }`
+- `PATCH /rivers/:id` — update any of `river_name`, `station_name`, `soglia1`, `soglia2`, `soglia3`
+- `DELETE /rivers/:id` — delete (cascades to `river_levels`)
+- `POST /river-levels` — trigger an on-demand check (returns `{ checked, crossings, skipped }`)
+
+The `station_id` is the Allerta Meteo `idstazione`; threshold values must be looked up manually from the [Allerta Meteo portal](https://allertameteo.regione.emilia-romagna.it/) and stored alongside the station.
 
 ## Configuration and Installation
 

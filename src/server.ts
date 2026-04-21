@@ -4,6 +4,7 @@ import i18next from 'i18next'
 import italian from './resources/locales/it.json'
 import { registerTestMessageRoutes } from './routes/test-message'
 import { registerForecastReportsRoutes } from './routes/forecast-reports'
+import { registerRiversRoutes } from './routes/rivers'
 import logger from './logger'
 
 const translations = {
@@ -45,6 +46,7 @@ export const startServer = async (): Promise<FastifyInstance> => {
     registerTestMessageRoutes(app)
     registerMeteoAlertsRoutes(app)
     registerForecastReportsRoutes(app)
+    registerRiversRoutes(app)
 
     await fastify.listen({
         host: '127.0.0.1',
