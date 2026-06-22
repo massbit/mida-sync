@@ -8,8 +8,27 @@ import {
     updateRiver,
 } from '../models/river'
 import { runRiverLevelCheck } from '../tasks/river-levels'
+import { getSensorStations } from '../services/river-sensors'
+import { findNearestStations, parseSensorStations } from '../utilities/river-stations'
 
 const nullableNumber = { type: ['number', 'null'] }
+
+const nearestQuerySchema = {
+    type: 'object',
+    required: ['lat', 'lon'],
+    additionalProperties: false,
+    properties: {
+        lat: { type: 'number', minimum: -90, maximum: 90 },
+        lon: { type: 'number', minimum: -180, maximum: 180 },
+        limit: { type: 'integer', minimum: 1, maximum: 50 },
+    },
+}
+
+interface NearestQuery {
+    lat: number
+    lon: number
+    limit?: number
+}
 
 const createBodySchema = {
     type: 'object',
@@ -131,6 +150,23 @@ export const registerRiversRoutes = (fastify: FastifyInstance) => {
 
             await deleteRiver(request.params.id)
             reply.status(204).send(undefined)
+        },
+    })
+
+    fastify.route<{ Querystring: NearestQuery }>({
+        method: 'GET',
+        url: '/rivers/nearest',
+        schema: { querystring: nearestQuerySchema },
+        handler: async (request, reply) => {
+            const stations = await getSensorStations()
+            const parsed = parseSensorStations(stations)
+            const nearest = findNearestStations(
+                parsed,
+                { lat: request.query.lat, lon: request.query.lon },
+                request.query.limit ?? 5
+            )
+
+            reply.status(200).send(nearest)
         },
     })
 

@@ -3,6 +3,8 @@ import { runMeteoAlertCheck } from './tasks/meteo-alerts'
 import { runPretempCheck } from './tasks/pretemp'
 import { runEstofexCheck } from './tasks/estofex'
 import { runRiverLevelCheck } from './tasks/river-levels'
+import { runFloodPrediction } from './tasks/flood-prediction'
+import { runFloodCalibration } from './tasks/flood-calibration'
 import logger from './logger'
 
 const jobs: Cron[] = []
@@ -37,6 +39,9 @@ export const startScheduler = () => {
     schedule('pretemp', '*/5 * * * *', runPretempCheck)
     schedule('estofex', '*/5 * * * *', runEstofexCheck)
     schedule('river-levels', '*/5 * * * *', runRiverLevelCheck)
+    schedule('flood-prediction', '*/5 * * * *', runFloodPrediction)
+    // Re-learn link models daily (cheap, reads accumulated history); also run on demand after a backfill.
+    schedule('flood-calibration', '15 3 * * *', runFloodCalibration)
 
     logger.info({ count: jobs.length }, 'Scheduler started')
 }

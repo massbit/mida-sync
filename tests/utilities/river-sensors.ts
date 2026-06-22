@@ -178,4 +178,52 @@ describe('tests/utilities/river-sensors', () => {
             })
         })
     })
+
+    describe('detectThresholdCrossings with hysteresis margin', () => {
+        const single = [{ key: 'soglia1' as const, value: 1.5 }]
+        const margin = 0.1
+
+        it('holds "below" while inside the upper deadband', () => {
+            const previous: ThresholdBooleans = { soglia1_above: false, soglia2_above: null, soglia3_above: null }
+
+            const result = detectThresholdCrossings(1.55, single, previous, margin)
+
+            expect(result.crossings).to.deep.equal([])
+            expect(result.nextState.soglia1_above).to.equal(false)
+        })
+
+        it('emits "above" only once the level clears threshold + margin', () => {
+            const previous: ThresholdBooleans = { soglia1_above: false, soglia2_above: null, soglia3_above: null }
+
+            const result = detectThresholdCrossings(1.65, single, previous, margin)
+
+            expect(result.crossings).to.deep.equal([{ threshold: { key: 'soglia1', value: 1.5 }, direction: 'above' }])
+            expect(result.nextState.soglia1_above).to.equal(true)
+        })
+
+        it('holds "above" while inside the lower deadband', () => {
+            const previous: ThresholdBooleans = { soglia1_above: true, soglia2_above: null, soglia3_above: null }
+
+            const result = detectThresholdCrossings(1.45, single, previous, margin)
+
+            expect(result.crossings).to.deep.equal([])
+            expect(result.nextState.soglia1_above).to.equal(true)
+        })
+
+        it('emits "below" only once the level drops under threshold - margin', () => {
+            const previous: ThresholdBooleans = { soglia1_above: true, soglia2_above: null, soglia3_above: null }
+
+            const result = detectThresholdCrossings(1.35, single, previous, margin)
+
+            expect(result.crossings).to.deep.equal([{ threshold: { key: 'soglia1', value: 1.5 }, direction: 'below' }])
+            expect(result.nextState.soglia1_above).to.equal(false)
+        })
+
+        it('seeds the first observation with a plain comparison, ignoring the margin', () => {
+            const result = detectThresholdCrossings(1.55, single, undefined, margin)
+
+            expect(result.crossings).to.deep.equal([])
+            expect(result.nextState.soglia1_above).to.equal(true)
+        })
+    })
 })

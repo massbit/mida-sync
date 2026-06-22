@@ -5,6 +5,7 @@ import italian from './resources/locales/it.json'
 import { registerTestMessageRoutes } from './routes/test-message'
 import { registerForecastReportsRoutes } from './routes/forecast-reports'
 import { registerRiversRoutes } from './routes/rivers'
+import { registerRiverLinksRoutes } from './routes/river-links'
 import logger from './logger'
 
 const translations = {
@@ -47,6 +48,7 @@ export const startServer = async (): Promise<FastifyInstance> => {
     registerMeteoAlertsRoutes(app)
     registerForecastReportsRoutes(app)
     registerRiversRoutes(app)
+    registerRiverLinksRoutes(app)
 
     await fastify.listen({
         host: '127.0.0.1',
