@@ -49,6 +49,21 @@ export const getRiverLevelsSince = async (riverId: number, since: string): Promi
     return database.query<RiverLevel>(query, [riverId, since])
 }
 
+export interface RiverReading {
+    value: number
+    measured_at: string
+}
+
+/**
+ * Lightweight reading fetch for calibration: only the two columns the model needs, ordered in time.
+ * Keeps memory low on small hosts when scanning years of history (vs SELECT * full rows).
+ */
+export const getRiverReadingsSince = async (riverId: number, since: string): Promise<RiverReading[]> => {
+    const query = `SELECT value, measured_at FROM ${tableName} WHERE river_id = $1 AND measured_at >= $2 ORDER BY measured_at ASC`
+
+    return database.query<RiverReading>(query, [riverId, since])
+}
+
 export type BackfillRiverLevel = Omit<CreatableRiverLevel, never>
 
 /**

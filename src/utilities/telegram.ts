@@ -103,7 +103,8 @@ export const sendFloodPredictionMessage = async (
     const textMessage = `🌊⚠️ Possibile piena in arrivo
 Monte: ${upstream.river_name} — ${upstream.station_name}: ${payload.upstreamValue} m
 Storicamente questo livello a monte ha preceduto il superamento della soglia ${payload.targetThreshold} a ${downstream.river_name} — ${downstream.station_name}.
-Arrivo stimato: tra ~${formatLeadTime(payload.leadTimeMinutes)} (≈ ${eta})`
+Arrivo stimato: tra ~${formatLeadTime(payload.leadTimeMinutes)} (≈ ${eta})
+ℹ️ Stima statistica, non una previsione ufficiale: verificare sempre le fonti ufficiali (allertameteo.regione.emilia-romagna.it, Protezione Civile).`
 
     await sendTelegramMessage(config.chat_id, textMessage)
 }

@@ -1,12 +1,15 @@
 import { getRiverById } from '../models/river'
-import { getRiverLevelsSince } from '../models/river-level'
+import { getRiverReadingsSince } from '../models/river-level'
 import { getRiverLinks, updateRiverLinkModel } from '../models/river-link'
 import { calibrateLink, isLinkActive, toReadings } from '../utilities/flood-prediction'
 import logger from '../logger'
 
 const log = logger.child({ task: 'flood-calibration' })
 
-const EPOCH_START = '1970-01-01T00:00:00.000Z'
+// Bound how far back calibration reads, so memory stays modest on small hosts and the model
+// reflects recent channel behaviour (~6 years still spans many flood seasons).
+const CALIBRATION_LOOKBACK_DAYS = 6 * 365
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export interface FloodCalibrationSummary {
     calibrated: number
@@ -31,6 +34,7 @@ const thresholdFor = (
 export const runFloodCalibration = async (): Promise<FloodCalibrationSummary> => {
     const links = await getRiverLinks()
     const summary: FloodCalibrationSummary = { calibrated: 0, active: 0, skipped: 0 }
+    const since = new Date(Date.now() - CALIBRATION_LOOKBACK_DAYS * DAY_MS).toISOString()
 
     for (const link of links) {
         try {
@@ -51,8 +55,8 @@ export const runFloodCalibration = async (): Promise<FloodCalibrationSummary> =>
             }
 
             const [downstreamRows, upstreamRows] = await Promise.all([
-                getRiverLevelsSince(link.downstream_river_id, EPOCH_START),
-                getRiverLevelsSince(link.upstream_river_id, EPOCH_START),
+                getRiverReadingsSince(link.downstream_river_id, since),
+                getRiverReadingsSince(link.upstream_river_id, since),
             ])
 
             const model = calibrateLink(toReadings(upstreamRows), toReadings(downstreamRows), threshold)

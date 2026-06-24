@@ -47,6 +47,7 @@ export interface FloodModelOptions {
     minLeadMinutes: number
     minSamples: number
     precursorPercentile: number
+    minSeparationMinutes: number
 }
 
 export const DEFAULT_FLOOD_OPTIONS: FloodModelOptions = {
@@ -54,6 +55,9 @@ export const DEFAULT_FLOOD_OPTIONS: FloodModelOptions = {
     minLeadMinutes: 15,
     minSamples: 3,
     precursorPercentile: 0.25,
+    // Treat brief dips back under the threshold as part of the same flood, so one flood is one
+    // event (not many micro-events when the level hugs the threshold).
+    minSeparationMinutes: 6 * 60,
 }
 
 const MINUTE_MS = 60_000
@@ -83,13 +87,20 @@ export const percentile = (values: number[], p: number): number => {
  * Splits a level series into maximal runs strictly above `threshold`. Each run yields one event
  * with its onset (first sample above), peak time and peak value.
  */
-export const detectExceedanceEvents = (series: Reading[], threshold: number): ExceedanceEvent[] => {
+export const detectExceedanceEvents = (
+    series: Reading[],
+    threshold: number,
+    minSeparationMinutes = 0
+): ExceedanceEvent[] => {
     const sorted = sortByTime(series)
+    const separationMs = minSeparationMinutes * MINUTE_MS
     const events: ExceedanceEvent[] = []
     let current: ExceedanceEvent | null = null
+    let belowSince: number | null = null
 
     for (const point of sorted) {
         if (point.value > threshold) {
+            belowSince = null
             if (!current) {
                 current = { onsetAt: point.measuredAt, peakAt: point.measuredAt, peakValue: point.value }
             } else if (point.value > current.peakValue) {
@@ -97,8 +108,16 @@ export const detectExceedanceEvents = (series: Reading[], threshold: number): Ex
                 current.peakAt = point.measuredAt
             }
         } else if (current) {
-            events.push(current)
-            current = null
+            // Only close the event once the level has stayed below the threshold for at least the
+            // separation window; shorter dips are absorbed into the same flood.
+            if (belowSince === null) {
+                belowSince = point.measuredAt
+            }
+            if (point.measuredAt - belowSince >= separationMs) {
+                events.push(current)
+                current = null
+                belowSince = null
+            }
         }
     }
 
@@ -147,7 +166,7 @@ export const calibrateLink = (
     threshold: number,
     options: FloodModelOptions = DEFAULT_FLOOD_OPTIONS
 ): LinkModel => {
-    const events = detectExceedanceEvents(downstream, threshold)
+    const events = detectExceedanceEvents(downstream, threshold, options.minSeparationMinutes)
     const observations = events
         .map((event) => findPrecursor(upstream, event, options))
         .filter((obs): obs is PrecursorObservation => obs !== null)

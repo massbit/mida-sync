@@ -54,6 +54,21 @@ describe('tests/utilities/flood-prediction', () => {
             expect(events).to.have.length(1)
             expect(events[0].peakValue).to.equal(12)
         })
+
+        it('merges runs separated by a dip shorter than the separation window', () => {
+            // dip below at +30 then back above at +45 (15-min gap) with a 60-min separation -> one flood
+            const events = detectExceedanceEvents([at(0, 11), at(30, 9), at(45, 12)], 10, 60)
+
+            expect(events).to.have.length(1)
+            expect(events[0].onsetAt).to.equal(T0)
+            expect(events[0].peakValue).to.equal(12)
+        })
+
+        it('keeps runs separated by a dip longer than the separation window', () => {
+            const events = detectExceedanceEvents([at(0, 11), at(30, 9), at(95, 9), at(110, 12)], 10, 60)
+
+            expect(events).to.have.length(2)
+        })
     })
 
     describe('findPrecursor', () => {
@@ -69,7 +84,15 @@ describe('tests/utilities/flood-prediction', () => {
         })
 
         it('returns null when there is no upstream data in the lookback window', () => {
-            expect(findPrecursor([at(0, 4)], event, { maxLookbackMinutes: 60, minLeadMinutes: 15, minSamples: 3, precursorPercentile: 0.25 })).to.equal(null)
+            expect(
+                findPrecursor([at(0, 4)], event, {
+                    maxLookbackMinutes: 60,
+                    minLeadMinutes: 15,
+                    minSamples: 3,
+                    precursorPercentile: 0.25,
+                    minSeparationMinutes: 0,
+                })
+            ).to.equal(null)
         })
 
         it('returns null when the lead is below the minimum', () => {
