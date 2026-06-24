@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulazione piena · Mida-Sync</title>
+<style>
+  :root{
+    --navy:#0b3d6b; --blue:#1f78d1; --teal:#0f9aa3; --orange:#e8851a; --red:#c0392b;
+    --green:#2e9e5b; --ink:#22303c; --muted:#62788a; --line:#d8e3ee; --card:#ffffff;
+    --bg1:#eef5fb; --bg2:#e3eef8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh}
+  .wrap{max-width:960px;margin:0 auto;padding:22px 18px 60px}
+  header h1{margin:0 0 4px;font-size:24px;color:var(--navy)}
+  header p{margin:0;color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 6px 22px rgba(11,61,107,.06);padding:16px;margin-top:16px}
+  .controls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:6px}
+  .ctl label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:9px 14px;font-size:14px;cursor:pointer;color:var(--ink)}
+  .seg button.active{background:var(--navy);color:#fff}
+  input[type=range]{width:170px;accent-color:var(--blue)}
+  .val{font-variant-numeric:tabular-nums;font-weight:700;color:var(--navy)}
+  .btns{display:flex;gap:10px;margin-left:auto}
+  .btn{border:0;border-radius:10px;padding:11px 18px;font-size:15px;font-weight:600;cursor:pointer}
+  .btn.go{background:var(--blue);color:#fff} .btn.go:hover{background:#1a68b6}
+  .btn.reset{background:#eef2f6;color:var(--ink)}
+  canvas{width:100%;display:block;border-radius:10px}
+  .grid2{display:grid;grid-template-columns:1fr;gap:16px}
+  .banner{margin-top:14px;border-radius:12px;padding:12px 16px;font-weight:600;display:none;line-height:1.45}
+  .banner.show{display:block}
+  .steps{display:flex;gap:4px;margin-top:16px}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+  .step::before{content:'';position:absolute;top:17px;left:-50%;width:100%;height:2px;background:#dfe7ef;z-index:0}
+  .step:first-child::before{display:none}
+  .step .dot{position:relative;z-index:1;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+    font-size:16px;background:#eef2f6;border:2px solid #d8e3ee;color:#7a8a98;transition:background .3s,border-color .3s}
+  .step .lab{font-size:11px;text-align:center;color:#8295a4;line-height:1.25;max-width:96px}
+  .step.done .dot{background:var(--teal);border-color:var(--teal);color:#fff}
+  .step.done .lab{color:#0f7a82}
+  .step.active .dot{background:var(--blue);border-color:var(--blue);color:#fff;animation:pulse 1.3s infinite}
+  .step.active .lab{color:var(--blue);font-weight:700}
+  .step.active.alarm .dot{background:var(--red);border-color:var(--red);animation:pulseR 1.1s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 4px rgba(31,120,209,.28)}70%{box-shadow:0 0 0 11px rgba(31,120,209,0)}100%{box-shadow:0 0 0 4px rgba(31,120,209,0)}}
+  @keyframes pulseR{0%{box-shadow:0 0 0 4px rgba(192,57,43,.30)}70%{box-shadow:0 0 0 11px rgba(192,57,43,0)}100%{box-shadow:0 0 0 4px rgba(192,57,43,0)}}
+  .banner.warn{background:#fff4e6;border:1px solid #f0b870;color:#8a5200}
+  .banner.alarm{background:#fdeaea;border:1px solid #e09a93;color:#7a2018}
+  .banner.ok{background:#e9f7ef;border:1px solid #9ad3b2;color:#1d6b3f}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+  .stat{background:#f6fafe;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .stat .v{font-size:18px;font-weight:700;color:var(--navy);margin-top:3px;font-variant-numeric:tabular-nums}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700}
+  .b-wait{background:#eef2f6;color:#5a6b7a} .b-warn{background:#fbe3c0;color:#8a5200}
+  .b-alarm{background:#f6cfca;color:#7a2018} .b-ok{background:#cdeedb;color:#1d6b3f}
+  .explain{font-size:14px;color:#3a4a57;line-height:1.55}
+  .explain h3{color:var(--navy);margin:2px 0 6px;font-size:15px}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
+  .foot{margin-top:18px;font-size:12px;color:var(--muted);text-align:center;line-height:1.5}
+  @media(min-width:740px){.grid2{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🌊 Simulazione piena — preallarme a valle</h1>
+    <p>Come il sistema stima quando una piena raggiunge la pianura, osservando l'idrometro a monte. Dimostrazione · Mida-Sync</p>
+  </header>
+
+  <div class="card">
+    <div class="controls">
+      <div class="ctl">
+        <label>Fiume</label>
+        <div class="seg" id="scenario">
+          <button data-s="reno" class="active">Reno → Gandazzolo</button>
+          <button data-s="idice">Idice → S. Antonio</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Intensità piena · <span class="val" id="intLbl">80%</span></label>
+        <input type="range" id="intensity" min="20" max="100" value="80">
+      </div>
+      <div class="ctl">
+        <label>Velocità · <span class="val" id="spdLbl">3×</span></label>
+        <input type="range" id="speed" min="1" max="10" value="3">
+      </div>
+      <div class="btns">
+        <button class="btn go" id="go">▶ Avvia piena</button>
+        <button class="btn reset" id="reset">↺ Reset</button>
+      </div>
+    </div>
+
+    <div id="banner" class="banner"></div>
+
+    <div class="steps" id="steps">
+      <div class="step"><span class="dot">☔</span><span class="lab">Pioggia nel bacino</span></div>
+      <div class="step"><span class="dot">📈</span><span class="lab">Preallarme a monte</span></div>
+      <div class="step"><span class="dot">🌊</span><span class="lab">Onda in viaggio</span></div>
+      <div class="step"><span class="dot">🔴</span><span class="lab">Soglia a valle</span></div>
+    </div>
+
+    <div class="grid2" style="margin-top:14px">
+      <div><canvas id="map" width="680" height="240"></canvas></div>
+      <div><canvas id="chart" width="680" height="240"></canvas></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:#1f78d1"></i>idrometro a monte</span>
+      <span><i style="background:#0f9aa3"></i>idrometro a valle</span>
+      <span><i style="background:#c0392b"></i>soglia</span>
+      <span><i style="background:#e8851a"></i>arrivo previsto</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">Tempo simulato</div><div class="v" id="s-time">0 h</div></div>
+      <div class="stat"><div class="k">Monte <span id="s-mname"></span></div><div class="v" id="s-monte">– m</div></div>
+      <div class="stat"><div class="k">Valle <span id="s-vname"></span></div><div class="v" id="s-valle">– m</div></div>
+      <div class="stat"><div class="k">Stato modello</div><div class="v"><span id="s-state" class="badge b-wait">In attesa</span></div></div>
+      <div class="stat"><div class="k">Arrivo previsto</div><div class="v" id="s-pred">–</div></div>
+      <div class="stat"><div class="k">Arrivo reale · errore</div><div class="v" id="s-act">–</div></div>
+    </div>
+  </div>
+
+  <div class="card explain">
+    <h3>Come leggerlo</h3>
+    <p>Quando l'idrometro <b>a monte</b> (blu) raggiunge il suo <b>livello di preallarme</b>, il modello lancia
+    l'avviso e stima fra quanto la piena toccherà la <b>soglia a valle</b> (riga rossa). L'onda viaggia lungo il
+    fiume: l'intervallo fra le due curve che attraversano la soglia è il <b>tempo di anticipo</b>. Alla fine puoi
+    confrontare <b>arrivo previsto</b> e <b>arrivo reale</b>: la differenza è l'errore tipico di una stima statistica
+    (le piene più forti viaggiano più veloci e arrivano un po' prima del previsto).</p>
+    <p style="margin-bottom:0">Prova a <b>ridurre l'intensità</b>: sotto una certa soglia il fiume non esonda e il
+    modello — correttamente — <b>resta in silenzio</b>.</p>
+  </div>
+
+  <div class="foot">
+    Stima statistica a scopo dimostrativo — <b>non è una previsione ufficiale</b>.
+    Per allerte reali fare riferimento ad Allerta Meteo Emilia‑Romagna e alla Protezione Civile.
+  </div>
+</div>
+
+<script>
+const SCEN = {
+  reno: { mName:'Casalecchio', vName:'Gandazzolo', mBase:0.5, mMax:2.7, mPre:1.4,
+          vBase:8, vMax:17, vSog:12.5, leadH:17, peakUp:12 },
+  idice:{ mName:'Castenaso', vName:'S. Antonio', mBase:5, mMax:11.2, mPre:6.85,
+          vBase:6, vMax:14.6, vSog:10.5, leadH:4.3, peakUp:12 }
+};
+const TSIM = 48;            // ore simulate totali
+let scen = 'reno', intensity = 0.8, speed = 3;
+let running = false, simT = 0, lastTs = 0;
+let model = null;          // {preT, predT, actT, mPeak, vPeak, actualLead}
+
+const $ = s => document.querySelector(s);
+const wave = (t, pk, rise, fall, base, amp) => { const s = t<pk?rise:fall; return base + amp*Math.exp(-((t-pk)**2)/(2*s*s)); };
+
+function buildModel(){
+  const c = SCEN[scen];
+  const mPeak = c.mBase + (c.mMax-c.mBase)*intensity;
+  const vPeak = c.vBase + (c.vMax-c.vBase)*intensity;
+  const actualLead = c.leadH*(1.25-0.5*intensity);          // piene forti => anticipo minore
+  const monte = t => wave(t, c.peakUp, 4, 11, c.mBase, mPeak-c.mBase);
+  const valle = t => wave(t, c.peakUp+actualLead, 5, 14, c.vBase, vPeak-c.vBase);
+  const firstCross = (f, thr) => { for(let t=0;t<=TSIM;t+=0.05){ if(f(t)>=thr) return t; } return null; };
+  const preT = firstCross(monte, c.mPre);
+  const actT = firstCross(valle, c.vSog);
+  const predT = preT!=null ? preT + c.leadH : null;          // il modello prevede l'anticipo MEDIANO
+  return { c, monte, valle, mPeak, vPeak, actualLead, preT, actT, predT };
+}
+
+// ---------- canvas hi-dpi ----------
+function fit(cv){ const dpr=window.devicePixelRatio||1, r=cv.getBoundingClientRect();
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round((cv.dataset.h||240)*dpr);
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); cv._w=r.width; cv._h=+(cv.dataset.h||240); return x; }
+const mapCv=$('#map'), chartCv=$('#chart'); mapCv.dataset.h=240; chartCv.dataset.h=240;
+let mx, cx;
+function sizeAll(){ mx=fit(mapCv); cx=fit(chartCv); draw(); }
+
+// ---------- river path ----------
+const PATH=[{x:.08,y:.30},{x:.30,y:.46},{x:.50,y:.34},{x:.70,y:.58},{x:.92,y:.52}];
+function pointOnPath(s){
+  const W=mapCv._w,H=mapCv._h, pts=PATH.map(p=>({x:p.x*W,y:p.y*H}));
+  let seg=[],tot=0; for(let i=0;i<pts.length-1;i++){const d=Math.hypot(pts[i+1].x-pts[i].x,pts[i+1].y-pts[i].y);seg.push(d);tot+=d;}
+  let target=s*tot,acc=0;
+  for(let i=0;i<seg.length;i++){ if(acc+seg[i]>=target){const f=(target-acc)/seg[i];
+      return {x:pts[i].x+(pts[i+1].x-pts[i].x)*f, y:pts[i].y+(pts[i+1].y-pts[i].y)*f};} acc+=seg[i]; }
+  return pts[pts.length-1];
+}
+const S_MONTE=0.26, S_VALLE=0.82;
+
+function drawMap(){
+  const W=mapCv._w,H=mapCv._h; mx.clearRect(0,0,W,H);
+  mx.fillStyle='#f3f9ff'; mx.fillRect(0,0,W,H);
+  // mountains hint
+  mx.fillStyle='#e0eaf2'; mx.beginPath(); mx.moveTo(0,H*.4); mx.lineTo(W*.18,H*.05);
+  mx.lineTo(W*.34,H*.42); mx.lineTo(0,H*.6); mx.closePath(); mx.fill();
+  mx.fillStyle='#9fb4c6'; mx.font='600 11px sans-serif'; mx.fillText('Appennino',8,H*.18);
+  // river
+  const W2=W; mx.lineCap='round'; mx.lineJoin='round';
+  mx.strokeStyle='#cfe2f4'; mx.lineWidth=11; stroke();
+  mx.strokeStyle='#9cc6ec'; mx.lineWidth=6; stroke();
+  function stroke(){ mx.beginPath(); for(let s=0;s<=1.0001;s+=0.02){const p=pointOnPath(s); s===0?mx.moveTo(p.x,p.y):mx.lineTo(p.x,p.y);} mx.stroke(); }
+  // rain cloud (intensity)
+  const cp=pointOnPath(0.10); drawCloud(cp.x, cp.y-34, intensity);
+  // travelling wave packet (after preallarme)
+  if(model && model.preT!=null && simT>=model.preT && model.predT){
+    let p=(simT-model.preT)/(model.predT-model.preT); p=Math.max(0,Math.min(1,p));
+    const s=S_MONTE+(S_VALLE-S_MONTE)*p, pt=pointOnPath(s);
+    const g=mx.createRadialGradient(pt.x,pt.y,1,pt.x,pt.y,18);
+    g.addColorStop(0,'rgba(31,120,209,.95)'); g.addColorStop(1,'rgba(31,120,209,0)');
+    mx.fillStyle=g; mx.beginPath(); mx.arc(pt.x,pt.y,18,0,7); mx.fill();
+  }
+  // gauges
+  gauge(pointOnPath(S_MONTE), '#1f78d1', SCEN[scen].mName, model&&model.preT!=null&&simT>=model.preT);
+  gauge(pointOnPath(S_VALLE), '#0f9aa3', SCEN[scen].vName+' (Molinella)', model&&model.actT!=null&&simT>=model.actT);
+  function gauge(p,col,label,active){
+    if(active){mx.fillStyle=col+'33';mx.beginPath();mx.arc(p.x,p.y,16,0,7);mx.fill();}
+    mx.fillStyle=col; mx.beginPath(); mx.arc(p.x,p.y,7,0,7); mx.fill();
+    mx.fillStyle='#fff'; mx.beginPath(); mx.arc(p.x,p.y,3,0,7); mx.fill();
+    mx.fillStyle='#33485a'; mx.font='600 12px sans-serif'; mx.textAlign='center';
+    mx.fillText(label, p.x, p.y+24); mx.textAlign='left';
+  }
+}
+function drawCloud(x,y,inten){
+  if(inten<0.25) return;
+  mx.fillStyle='#b9c6d2'; for(const c of [[-14,4,12],[2,0,15],[16,5,11],[0,8,16]]) {mx.beginPath();mx.arc(x+c[0],y+c[1],c[2],0,7);mx.fill();}
+  mx.strokeStyle='rgba(31,120,209,'+(0.25+0.6*inten)+')'; mx.lineWidth=2;
+  const n=Math.round(4+inten*7);
+  for(let i=0;i<n;i++){ const dx=((i*53+(Math.floor(simT*7)%37))%60)-26, ph=(simT*60+i*40)%34;
+    mx.beginPath(); mx.moveTo(x+dx,y+14+ph); mx.lineTo(x+dx-2,y+22+ph); mx.stroke(); }
+}
+
+function drawChart(){
+  const W=chartCv._w,H=chartCv._h; cx.clearRect(0,0,W,H);
+  const L=42,R=14,T=16,B=26, pw=W-L-R, ph=H-T-B, yMax=1.65;
+  const px=t=>L+t/TSIM*pw, py=v=>T+ph-(v/yMax)*ph;
+  // grid
+  cx.strokeStyle='#eef3f8'; cx.lineWidth=1; cx.fillStyle='#9fb1c0'; cx.font='10px sans-serif';
+  for(let t=0;t<=TSIM;t+=6){cx.beginPath();cx.moveTo(px(t),T);cx.lineTo(px(t),T+ph);cx.stroke();
+    cx.textAlign='center';cx.fillText(t+'h',px(t),H-9);}
+  cx.textAlign='left';
+  // threshold line (1.0 normalised)
+  cx.strokeStyle='#c0392b'; cx.setLineDash([5,4]); cx.lineWidth=1.4;
+  cx.beginPath();cx.moveTo(L,py(1));cx.lineTo(W-R,py(1));cx.stroke(); cx.setLineDash([]);
+  cx.fillStyle='#c0392b'; cx.fillText('SOGLIA',L+3,py(1)-4);
+  cx.fillStyle='#5a6b7a'; cx.save(); cx.translate(12,T+ph/2); cx.rotate(-Math.PI/2); cx.textAlign='center';
+  cx.fillText('livello / soglia',0,0); cx.restore(); cx.textAlign='left';
+  if(!model) return;
+  const c=model.c;
+  curve(model.monte, c.mPre, '#1f78d1');
+  curve(model.valle, c.vSog, '#0f9aa3');
+  function curve(f,norm,col){ cx.strokeStyle=col; cx.lineWidth=2.4; cx.beginPath();
+    let started=false; for(let t=0;t<=Math.min(simT,TSIM);t+=0.15){const v=f(t)/norm; const X=px(t),Y=py(Math.min(v,yMax));
+      started?cx.lineTo(X,Y):cx.moveTo(X,Y); started=true;} cx.stroke(); }
+  // markers
+  const vline=(t,col,lab,dash)=>{ if(t==null||simT<t-0.001) return; cx.strokeStyle=col; cx.setLineDash(dash||[]);
+    cx.lineWidth=1.3; cx.beginPath();cx.moveTo(px(t),T);cx.lineTo(px(t),T+ph);cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle=col; cx.font='600 10px sans-serif'; cx.fillText(lab,px(t)+3,T+10); };
+  vline(model.preT,'#1f78d1','preallarme');
+  vline(model.predT,'#e8851a','previsto',[4,3]);
+  vline(model.actT,'#c0392b','reale');
+  // "ora" cursor
+  cx.strokeStyle='#22303c'; cx.lineWidth=1; cx.beginPath();cx.moveTo(px(Math.min(simT,TSIM)),T);cx.lineTo(px(Math.min(simT,TSIM)),T+ph);cx.stroke();
+}
+
+function setSteps(){
+  const el=$('#steps'); if(!el) return;
+  let active=1;
+  if(model && model.preT!=null){
+    if(model.actT!=null && simT>=model.actT) active=4;
+    else if(simT>=model.preT) active=3;       // preallarme fatto (step 2 done), onda in viaggio
+  }
+  [...el.children].forEach((s,idx)=>{ const i=idx+1;
+    s.className='step'+(i<active?' done':i===active?' active':'')+(i===4&&i===active?' alarm':''); });
+}
+
+function draw(){ drawMap(); drawChart(); }
+
+function fmtH(t){ return (Math.round(t*10)/10)+' h'; }
+function updateStats(){
+  const c=SCEN[scen];
+  $('#s-mname').textContent='('+c.mName+')'; $('#s-vname').textContent='('+c.vName+')';
+  $('#s-time').textContent=Math.round(simT)+' h';
+  if(model){
+    $('#s-monte').textContent=model.monte(simT).toFixed(2)+' m';
+    $('#s-valle').textContent=model.valle(simT).toFixed(2)+' m';
+  }
+  const st=$('#s-state'); const ban=$('#banner');
+  let state='wait';
+  if(model){
+    if(model.actT!=null && simT>=model.actT && model.valle(simT)<c.vSog && simT>model.actT+2) state='ok';
+    else if(model.actT!=null && simT>=model.actT) state='alarm';
+    else if(model.preT!=null && simT>=model.preT) state='warn';
+  }
+  const map={wait:['b-wait','In attesa'],warn:['b-warn','⚠ PREALLARME'],alarm:['b-alarm','🔴 Soglia superata'],ok:['b-ok','✓ Rientro']};
+  st.className='badge '+map[state][0]; st.textContent=map[state][1];
+
+  // prediction readouts
+  if(model && model.preT!=null && simT>=model.preT){
+    const eta=model.predT;
+    $('#s-pred').textContent='≈ '+fmtH(eta)+' (+'+fmtH(c.leadH)+')';
+  } else $('#s-pred').textContent = (model&&model.preT==null)?'nessuna piena':'–';
+  if(model && model.actT!=null && simT>=model.actT){
+    const err=model.actT-model.predT;
+    $('#s-act').textContent=fmtH(model.actT)+'  ('+(err>=0?'+':'')+fmtH(err).replace(' h','')+'h)';
+  } else $('#s-act').textContent='–';
+
+  // banner
+  ban.className='banner';
+  if(state==='warn'){ ban.classList.add('show','warn');
+    ban.innerHTML='⚠ <b>Preallarme</b>: '+c.mName+' ha raggiunto il livello critico — piena stimata a '+c.vName+' tra ~'+fmtH(c.leadH)+'.'; }
+  else if(state==='alarm'){ ban.classList.add('show','alarm');
+    const err=model.actT-model.predT;
+    ban.innerHTML='🔴 <b>Soglia superata a '+c.vName+'</b>. Anticipo reale '+fmtH(model.actT-model.preT)+' · errore di previsione '+(err>=0?'+':'')+fmtH(err).replace(' h','')+'h.'; }
+  else if(state==='ok'){ ban.classList.add('show','ok'); ban.innerHTML='✓ Piena rientrata sotto la soglia.'; }
+  else if(model&&model.preT==null&&simT>5){ ban.classList.add('show','ok'); ban.innerHTML='✓ Intensità insufficiente: nessuna piena, il modello resta in silenzio.'; }
+  setSteps();
+}
+
+function loop(ts){
+  if(!running){return;}
+  if(!lastTs) lastTs=ts; const dt=(ts-lastTs)/1000; lastTs=ts;
+  simT+=dt*speed;                      // speed = ore simulate al secondo
+  if(simT>=TSIM){ simT=TSIM; running=false; }
+  draw(); updateStats();
+  if(running) requestAnimationFrame(loop);
+}
+
+// ---------- controls ----------
+$('#scenario').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
+  [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  scen=b.dataset.s; resetSim(); });
+$('#intensity').addEventListener('input',e=>{ intensity=+e.target.value/100; $('#intLbl').textContent=e.target.value+'%'; resetSim(); });
+$('#speed').addEventListener('input',e=>{ speed=+e.target.value; $('#spdLbl').textContent=e.target.value+'×'; });
+$('#go').addEventListener('click',()=>{ if(simT>=TSIM||simT===0){simT=0;} model=buildModel(); running=true; lastTs=0; requestAnimationFrame(loop); });
+$('#reset').addEventListener('click',resetSim);
+function resetSim(){ running=false; simT=0; lastTs=0; model=buildModel(); draw(); updateStats(); }
+window.addEventListener('resize',sizeAll);
+
+// init
+sizeAll(); resetSim();
+</script>
+</body>
+</html>
