@@ -28,6 +28,14 @@ export const getLastAlertReport = async (): Promise<AlertReport> => {
     return reports[0]
 }
 
+export const getAlertReportByNumber = async (reportNumber: string): Promise<AlertReport | undefined> => {
+    const query = `SELECT * FROM ${tableName} WHERE report_number = $1 ORDER BY id DESC LIMIT 1`
+
+    const rows = await database.query<AlertReport>(query, [reportNumber])
+
+    return rows[0]
+}
+
 export const createAlertReport = async (report: EditableAlertReport): Promise<AlertReport> => {
     return database.create<AlertReport>(tableName, report)
 }
