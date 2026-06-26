@@ -11,6 +11,7 @@ export const runMeteoAlertCheck = async (): Promise<ParsedMeteoAlert | undefined
     const tomorrowAlert = await getTomorrowMeteoAlert()
 
     if (!tomorrowAlert) {
+        log.info({ event: 'no-tomorrow-alert' }, 'No alert published for tomorrow')
         return undefined
     }
 
@@ -21,6 +22,10 @@ export const runMeteoAlertCheck = async (): Promise<ParsedMeteoAlert | undefined
     const existing = await getAlertReportByNumber(parsedAlert.id)
 
     if (existing) {
+        log.info(
+            { event: 'already-handled', reportNumber: parsedAlert.id, critic: parsedAlert.isCritic },
+            'Bulletin already handled'
+        )
         return parsedAlert
     }
 
@@ -38,6 +43,7 @@ export const runMeteoAlertCheck = async (): Promise<ParsedMeteoAlert | undefined
     // Non-critical bulletin: just record it (so pretemp/estofex see the latest report); no message.
     if (!parsedAlert.isCritic) {
         await createAlertReport(report)
+        log.info({ event: 'recorded-non-critical', reportNumber: parsedAlert.id }, 'Recorded non-critical bulletin')
         return parsedAlert
     }
 
@@ -48,6 +54,7 @@ export const runMeteoAlertCheck = async (): Promise<ParsedMeteoAlert | undefined
     try {
         await sendNewTomorrowAlertMessage(parsedAlert)
         await createAlertReport(report)
+        log.info({ event: 'sent', reportNumber: parsedAlert.id }, 'Meteo alert sent')
     } catch (err) {
         log.error({ err, alertId: parsedAlert.id }, 'Failed to send meteo alert; will retry next tick')
     }

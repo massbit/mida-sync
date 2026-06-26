@@ -27,6 +27,7 @@ export const runPretempCheck = async (): Promise<'sent' | 'skipped' | 'telegram-
     }
 
     await updateLastAlertReport({ pretemp_sent: true }, lastAlertReport.id)
+    log.info({ event: 'sent', reportNumber: lastAlertReport.report_number }, 'Pretemp report sent')
 
     return 'sent'
 }

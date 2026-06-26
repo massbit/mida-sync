@@ -30,6 +30,7 @@ export const runEstofexCheck = async (): Promise<'sent' | 'skipped' | 'telegram-
     }
 
     await updateLastAlertReport({ estofex_sent: true }, lastAlertReport.id)
+    log.info({ event: 'sent', reportNumber: lastAlertReport.report_number }, 'Estofex report sent')
 
     return 'sent'
 }

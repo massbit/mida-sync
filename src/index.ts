@@ -42,6 +42,12 @@ const app = async () => {
         database = new PostgreSQL(config.database)
         await database.start()
         startScheduler()
+        // Surface the effective notification config at boot (no secrets) so a missing chat id or
+        // token is obvious in the logs instead of failing silently.
+        logger.info(
+            { hasChatId: !!config.chat_id, hasToken: !!config.telegram_token, alertZone: config.alert_zone },
+            'Configuration loaded'
+        )
     } catch (error) {
         logger.error({ err: error }, 'Application bootstrap failed')
         process.exitCode = 1
