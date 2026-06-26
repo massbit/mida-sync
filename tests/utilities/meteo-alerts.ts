@@ -54,8 +54,9 @@ describe('tests/utilities/meteo-alerts.ts', () => {
 
             const parsed = parseMeteoAlert(alert, zone)
 
-            // id: 'allerta_123_45' -> remove .pdf -> 'allerta_123_45' -> replace all '_' -> 'allerta/123/45' -> remove 'allerta' -> '/123/45'
-            expect(parsed.id).to.equal('/123/45')
+            // id keeps the document type so allerta/bollettino with the same number don't collide:
+            // 'allerta_123_45.pdf' -> drop .pdf -> 'allerta_123_45' -> '_'->'/' -> 'allerta/123/45'
+            expect(parsed.id).to.equal('allerta/123/45')
 
             // link must be prefixed with the base URL
             expect(parsed.link).to.equal(`https://allertameteo.regione.emilia-romagna.it${originalLink}`)

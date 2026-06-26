@@ -25,8 +25,6 @@ const correctColors: {
 
 const colorsToRemove = [null, MeteoAlertType.green]
 
-const wordToRemove = /allerta|bollettino/i
-
 export const parseMeteoAlert = (alert: MeteoAlert, zone: string): ParsedMeteoAlert => {
     const zoneData = alert[zone as (typeof alertZones)[number]]
 
@@ -40,7 +38,10 @@ export const parseMeteoAlert = (alert: MeteoAlert, zone: string): ParsedMeteoAle
         throw new Error(`Invalid link format: ${alert.link}`)
     }
 
-    const id = fileName.replace('.pdf', '').replace(/_/g, '/').replace(wordToRemove, '').trim()
+    // Keep the document type ("allerta"/"bollettino") in the id: the two are separate numbering
+    // sequences, so e.g. bollettino064 and allerta064 must NOT collapse to the same "064/2026"
+    // report_number (that collision silently de-duplicated real alerts).
+    const id = fileName.replace('.pdf', '').replace(/_/g, '/').trim()
 
     alert.link = `https://allertameteo.regione.emilia-romagna.it${alert.link}`
 
