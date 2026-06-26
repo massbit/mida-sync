@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon src/index.ts",
     "dist": "tsc",
-    "test": "NODE_ENV=test mocha --require ts-node/register --extension ts --spec './tests/**/*.ts'",
+    "test": "NODE_ENV=test mocha --require ts-node/register --extension ts --exit --spec './tests/**/*.ts'",
     "deploy": "docker compose build --no-cache && docker compose up -d --force-recreate"
   },
   "dependencies": {
