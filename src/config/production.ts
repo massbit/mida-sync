@@ -1,4 +1,5 @@
 import { Config } from './config'
+import { getRiverThresholdMargin } from './env'
 
 export const productionConfig: Config = {
     database: {
@@ -11,4 +12,5 @@ export const productionConfig: Config = {
     telegram_token: process.env.TELEGRAM_TOKEN as string,
     chat_id: process.env.CHANNEL_ID as string,
     alert_zone: process.env.ALERT_ZONE || 'D1',
+    river_threshold_margin: getRiverThresholdMargin(),
 }

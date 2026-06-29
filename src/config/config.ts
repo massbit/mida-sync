@@ -12,6 +12,7 @@ export interface Config {
     telegram_token: string
     chat_id: string
     alert_zone: string
+    river_threshold_margin: number
 }
 
 export const getNodeEnv = (): NodeEnv => process.env.NODE_ENV as NodeEnv

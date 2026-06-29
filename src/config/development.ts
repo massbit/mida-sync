@@ -1,4 +1,5 @@
 import { Config } from './config'
+import { getRiverThresholdMargin } from './env'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -14,4 +15,5 @@ export const developmentConfig: Config = {
     telegram_token: process.env.TELEGRAM_2_TOKEN as string,
     chat_id: process.env.CHAT_ID as string,
     alert_zone: process.env.ALERT_ZONE || 'D1',
+    river_threshold_margin: getRiverThresholdMargin(),
 }

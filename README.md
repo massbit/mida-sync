@@ -21,6 +21,16 @@ The system interfaces with various official and unofficial sources to provide a 
    - **Details:** Dynamically retrieves forecast maps for the following day via the Pretemp archive.
    - **Notification:** If conditions require it (presence of ongoing alerts), it sends the thunderstorm forecast image to the Telegram channel.
 
+4. **River levels (Allerta Meteo hydrometric stations)**
+   - **Feature:** Monitoring of water levels at configured hydrometric stations.
+   - **Details:** Periodically polls the Allerta Meteo time-series endpoint for each registered station and compares the latest reading against operator-defined thresholds (`soglia1`, `soglia2`, `soglia3`). Station metadata and thresholds live in the `rivers` table; each new reading is appended to `river_levels` (de-duplicated by measurement time). A hysteresis deadband (`RIVER_THRESHOLD_MARGIN`, default 0.05 m) avoids alert flapping when a level hovers around a threshold.
+   - **Notification:** Sends a Telegram message only on crossing events — when a reading rises above or falls below a threshold relative to the previous check.
+
+5. **Flood prediction (empirical precursor model)**
+   - **Feature:** Warns that a downstream point of interest is likely to exceed a threshold, with an estimated lead time, based on what upstream gauges are doing now.
+   - **Details:** For each configured `river_link` (an upstream gauge → a downstream point), a daily calibration mines the accumulated `river_levels` history for past downstream exceedances and learns, from those events only, the upstream `precursor_level` and the typical `lead_time`. A link stays inactive until it has enough historical events. Online, when the upstream gauge reaches the learned level while rising, a single prediction is emitted and recorded in `link_predictions` for later scoring. No AI — event detection plus robust statistics.
+   - **Bootstrap:** Since the live API only retains ~2.4 days, historical data is backfilled from the free ARPAE-SIMC open archive (see below). Without a backfill the model simply stays dormant until enough live events accrue.
+
 ## Scheduled Tasks (Crons)
 
 The application relies on scheduled tasks (crons) to automate the weather monitoring flow:
@@ -31,6 +41,52 @@ The application relies on scheduled tasks (crons) to automate the weather monito
   - Verifies and sends the Pretemp map for the following day, provided there is an ongoing alert and the map hasn't been sent yet.
 - **Estofex Report Check**
   - Verifies and sends the Estofex map for the following day, following the same conditional logic based on ongoing alerts.
+- **River Levels Check**
+  - Every 5 minutes, for each row in the `rivers` table, fetches the latest hydrometric reading and appends it to `river_levels`. Sends a Telegram message only when the reading crosses one of the configured thresholds since the previous check.
+- **Flood Prediction Check**
+  - Every 5 minutes, evaluates each calibrated `river_link`: if the upstream gauge has reached its learned precursor level while rising, emits a single de-duplicated flood-arrival prediction.
+- **Flood Calibration**
+  - Daily, re-learns every link's model (lead time + precursor level) from the accumulated `river_levels` history. Also runnable on demand after a backfill.
+
+## Database bootstrap
+
+Schema is applied manually (no migration tooling). The required tables are in [sql/rivers.sql](sql/rivers.sql):
+
+```bash
+psql "$DATABASE_URL" -f sql/rivers.sql
+```
+
+## River stations CRUD
+
+Stations are managed via HTTP (port 3000):
+
+- `GET /rivers` — list registered stations
+- `POST /rivers` — create; body `{ station_id, river_name, station_name, soglia1?, soglia2?, soglia3? }`
+- `PATCH /rivers/:id` — update any of `river_name`, `station_name`, `soglia1`, `soglia2`, `soglia3`
+- `DELETE /rivers/:id` — delete (cascades to `river_levels`)
+- `POST /river-levels` — trigger an on-demand check (returns `{ checked, crossings, skipped, unchanged }`)
+- `GET /rivers/nearest?lat=&lon=&limit=` — discovery: nearest stations to a point, with coordinates and the official soglie the Allerta sensor list reports (suggestions only)
+
+The `station_id` is the Allerta Meteo `idstazione`; threshold values are operator-defined (the `nearest` endpoint surfaces the portal's official soglie as suggestions, but they are not auto-applied).
+
+## Flood prediction (links, calibration, backfill)
+
+Both ends of a link must be registered as `rivers` so their readings accumulate in `river_levels`.
+
+- `GET /river-links` — list links and their learned models
+- `POST /river-links` — create; body `{ upstream_river_id, downstream_river_id, target_threshold? }` (`target_threshold` 1–3, default 1)
+- `DELETE /river-links/:id` — delete a link
+- `POST /flood-calibration` — re-learn all link models from history (returns `{ calibrated, active, skipped }`)
+- `POST /flood-prediction` — evaluate all links now (returns `{ evaluated, predictions, skipped }`)
+- `POST /flood-backfill` — body `{ from: "YYYY-MM", to: "YYYY-MM" }`; backfills `river_levels` from the ARPAE-SIMC open archive (`https://dati-simc.arpae.it/opendata/osservati/meteo/storico/`) for every registered station. Returns `202` immediately and runs in the background (it streams ~20 MB/month). Run it once, then `POST /flood-calibration`.
+
+Example bootstrap for the Molinella stations (Idice S. Antonio + Reno Gandazzolo and their upstream gauges):
+
+```bash
+# register stations, link them, then:
+curl -X POST localhost:3000/flood-backfill -H 'content-type: application/json' -d '{"from":"2020-01","to":"2024-12"}'
+curl -X POST localhost:3000/flood-calibration
+```
 
 ## Configuration and Installation
 
