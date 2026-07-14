@@ -10,8 +10,11 @@ export const checkEstofexReport = (report: EstofexReport): boolean => {
         return false
     }
 
-    const startTime = customMoment(parseInt(report.forecast.start_time['@_value'], 10))
-    const expiryTime = customMoment(parseInt(report.forecast.expiry_time['@_value'], 10))
+    // Estofex emits start/expiry as a UTC 'YYYYMMDDHH' string (e.g. "2026071506"), NOT an epoch.
+    // Parsing it as a number and feeding moment() read it as ms-since-epoch (Jan 1970), so the
+    // window never straddled "tomorrow" and the report was always skipped.
+    const startTime = customMoment.utc(report.forecast.start_time['@_value'], 'YYYYMMDDHH')
+    const expiryTime = customMoment.utc(report.forecast.expiry_time['@_value'], 'YYYYMMDDHH')
 
     const tomorrow = customMoment().add(1, 'day')
 

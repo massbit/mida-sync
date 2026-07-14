@@ -8,9 +8,8 @@ describe('tests/utilities/estofex.ts', () => {
     describe('checkEstofexReport', () => {
         let clock: SinonFakeTimers
 
-        const baseTimestamp = Date.UTC(2024, 4, 10, 0, 0, 0) // 10 maggio 2024 00:00:00 UTC
-        const oneDayMs = 24 * 60 * 60 * 1000
-        const twelveHoursMs = 12 * 60 * 60 * 1000
+        // Estofex emits start/expiry as a UTC 'YYYYMMDDHH' string. "Now" is 10 May 2024 00:00 UTC.
+        const baseTimestamp = Date.UTC(2024, 4, 10, 0, 0, 0)
 
         beforeEach(() => {
             clock = sinon.useFakeTimers(baseTimestamp)
@@ -30,7 +29,7 @@ describe('tests/utilities/estofex.ts', () => {
             const withoutStart: EstofexReport = {
                 forecast: {
                     expiry_time: {
-                        '@_value': String(baseTimestamp + oneDayMs),
+                        '@_value': '2024051100',
                     },
                 },
             }
@@ -38,7 +37,7 @@ describe('tests/utilities/estofex.ts', () => {
             const withoutExpiry: EstofexReport = {
                 forecast: {
                     start_time: {
-                        '@_value': String(baseTimestamp),
+                        '@_value': '2024051000',
                     },
                 },
             }
@@ -52,7 +51,7 @@ describe('tests/utilities/estofex.ts', () => {
                 forecast: {
                     start_time: {},
                     expiry_time: {
-                        '@_value': String(baseTimestamp + oneDayMs),
+                        '@_value': '2024051100',
                     },
                 },
             }
@@ -61,13 +60,14 @@ describe('tests/utilities/estofex.ts', () => {
         })
 
         it('returns true when the report covers the current day plus one', () => {
+            // start 10 May 12:00, expiry 11 May 12:00 UTC — straddles "tomorrow" (11 May 00:00).
             const report: EstofexReport = {
                 forecast: {
                     start_time: {
-                        '@_value': String(baseTimestamp + twelveHoursMs),
+                        '@_value': '2024051012',
                     },
                     expiry_time: {
-                        '@_value': String(baseTimestamp + oneDayMs + twelveHoursMs),
+                        '@_value': '2024051112',
                     },
                 },
             }
@@ -76,13 +76,14 @@ describe('tests/utilities/estofex.ts', () => {
         })
 
         it('returns false when the report starts after tomorrow', () => {
+            // start 11 May 12:00 — after tomorrow (11 May 00:00).
             const report: EstofexReport = {
                 forecast: {
                     start_time: {
-                        '@_value': String(baseTimestamp + oneDayMs + twelveHoursMs),
+                        '@_value': '2024051112',
                     },
                     expiry_time: {
-                        '@_value': String(baseTimestamp + 3 * oneDayMs),
+                        '@_value': '2024051300',
                     },
                 },
             }
@@ -91,13 +92,14 @@ describe('tests/utilities/estofex.ts', () => {
         })
 
         it('returns false when the report ends before tomorrow', () => {
+            // expiry 10 May 12:00 — before tomorrow (11 May 00:00).
             const report: EstofexReport = {
                 forecast: {
                     start_time: {
-                        '@_value': String(baseTimestamp),
+                        '@_value': '2024051000',
                     },
                     expiry_time: {
-                        '@_value': String(baseTimestamp + twelveHoursMs),
+                        '@_value': '2024051012',
                     },
                 },
             }
