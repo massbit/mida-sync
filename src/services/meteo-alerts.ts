@@ -1,5 +1,4 @@
 import { http } from './http'
-import customMoment from '../custom-components/custom-moment'
 import logger from '../logger'
 
 export enum MeteoAlertType {
@@ -57,16 +56,19 @@ export type MeteoAlertZoneData = {
 
 export type MeteoAlert = BaseMeteoAlert & MeteoAlertZoneData
 
-export const getTodayMeteoAlert = async (): Promise<MeteoAlert | undefined> => {
-    const today = customMoment().format('YYYY-MM-DD HH:mm')
+// The Emilia-Romagna endpoint reads the `data` query param as Italian local (Europe/Rome) time.
+// Containers run in UTC, so formatting with the process clock queries ~2h early and, right after
+// the midday bulletin is issued, returns the superseded earlier bulletin (e.g. yellow instead of
+// the new orange). Build the timestamp in Rome wall-clock. 'sv-SE' yields "YYYY-MM-DD HH:mm:ss";
+// the API wants the minute form.
+const romeTimestamp = (date: Date): string => date.toLocaleString('sv-SE', { timeZone: 'Europe/Rome' }).slice(0, 16)
 
-    return getMeteoAlert(today)
+export const getTodayMeteoAlert = async (): Promise<MeteoAlert | undefined> => {
+    return getMeteoAlert(romeTimestamp(new Date()))
 }
 
 export const getTomorrowMeteoAlert = async (): Promise<MeteoAlert | undefined> => {
-    const tomorrow = customMoment().add(1, 'day').format('YYYY-MM-DD HH:mm')
-
-    return getMeteoAlert(tomorrow)
+    return getMeteoAlert(romeTimestamp(new Date(Date.now() + 24 * 60 * 60 * 1000)))
 }
 
 export const getMeteoAlert = async (date?: string): Promise<MeteoAlert | undefined> => {
