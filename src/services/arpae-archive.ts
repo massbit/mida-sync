@@ -11,6 +11,9 @@ const ARCHIVE_BASE_URL = 'https://dati-simc.arpae.it/opendata/osservati/meteo/st
 const HYDRO_TIMERANGE = 254
 const LEVEL_VARIABLE = 'B13215'
 
+// Abort a month's download if its stream goes idle this long (guards against a stalled body).
+const STREAM_IDLE_TIMEOUT_MS = 60_000
+
 export interface ArchiveTarget {
     riverId: number
     soglia1: number | null
@@ -105,13 +108,24 @@ export const fetchArchiveMonth = async (
     // Archive files are ~20 MB; override the default 15s client timeout so the download/stream has
     // room to complete on a slow connection.
     const response = await http.get(url, { responseType: 'stream', timeout: 180_000 })
-    const lines = readline.createInterface({
-        input: (response.data as NodeJS.ReadableStream).pipe(zlib.createGunzip()),
-        crlfDelay: Infinity,
-    })
+    const source = (response.data as NodeJS.ReadableStream).pipe(zlib.createGunzip())
+
+    // axios' `timeout` only guards the initial response headers, not the streamed body, so a mid-
+    // download stall would hang the `for await` forever (seen in prod). Watchdog it: if no data
+    // arrives for STREAM_IDLE_TIMEOUT_MS, destroy the stream so the await rejects and the caller's
+    // per-month catch skips this month and moves on.
+    let idle: NodeJS.Timeout | undefined
+    const bumpIdle = () => {
+        if (idle) clearTimeout(idle)
+        idle = setTimeout(() => source.destroy(new Error(`Idle timeout streaming ${url}`)), STREAM_IDLE_TIMEOUT_MS)
+    }
+
+    const lines = readline.createInterface({ input: source, crlfDelay: Infinity })
 
     try {
+        bumpIdle()
         for await (const line of lines) {
+            bumpIdle()
             if (line.length === 0) {
                 continue
             }
@@ -123,6 +137,8 @@ export const fetchArchiveMonth = async (
     } catch (error) {
         logger.error({ err: error, url }, 'Failed while streaming ARPAE archive month')
         throw error
+    } finally {
+        if (idle) clearTimeout(idle)
     }
 
     return readings
