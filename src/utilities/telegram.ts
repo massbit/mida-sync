@@ -14,7 +14,9 @@ const thresholdLabel: Record<ThresholdCrossing['threshold']['key'], string> = {
     soglia3: 'soglia 3',
 }
 
-export const sendNewTomorrowAlertMessage = async (alert: ParsedMeteoAlert) => {
+export type AlertDay = 'today' | 'tomorrow'
+
+export const sendMeteoAlertMessage = async (alert: ParsedMeteoAlert, day: AlertDay = 'tomorrow') => {
     const criticDataMessage = Object.keys(alert.criticZoneData)
         .map((key) => {
             const color = alert.criticZoneData[key]
@@ -30,7 +32,10 @@ export const sendNewTomorrowAlertMessage = async (alert: ParsedMeteoAlert) => {
         })
         .join('\n')
 
-    const textMessage = `⚠️ Nuova allerta meteo per domani!
+    const heading =
+        day === 'today' ? '⚠️ Aggiornamento allerta meteo di oggi!' : '⚠️ Nuova allerta meteo per domani!'
+
+    const textMessage = `${heading}
 📅 Data inizio: ${alert.dataInizio}
 📅 Data fine: ${alert.dataFine}
 ${separator}

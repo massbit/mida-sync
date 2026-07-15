@@ -24,6 +24,7 @@ const parsed = (overrides: Partial<ParsedMeteoAlert> = {}): ParsedMeteoAlert =>
     }) as ParsedMeteoAlert
 
 describe('tests/tasks/meteo-alerts', () => {
+    let getToday: SinonStub
     let getTomorrow: SinonStub
     let parse: SinonStub
     let getByNumber: SinonStub
@@ -31,23 +32,39 @@ describe('tests/tasks/meteo-alerts', () => {
     let send: SinonStub
 
     beforeEach(() => {
+        getToday = sinon.stub(alertService, 'getTodayMeteoAlert').resolves({} as never)
         getTomorrow = sinon.stub(alertService, 'getTomorrowMeteoAlert').resolves({} as never)
         parse = sinon.stub(alertUtil, 'parseMeteoAlert')
         getByNumber = sinon.stub(alertModel, 'getAlertReportByNumber').resolves(undefined)
         create = sinon.stub(alertModel, 'createAlertReport').resolves({} as never)
-        send = sinon.stub(telegram, 'sendNewTomorrowAlertMessage').resolves()
+        send = sinon.stub(telegram, 'sendMeteoAlertMessage').resolves()
     })
 
     afterEach(() => sinon.restore())
 
-    it('sends a new critical bulletin and records it only after a successful send', async () => {
+    it('sends today AND tomorrow when both are critical, recording each only after its send', async () => {
         parse.returns(parsed({ isCritic: true }))
 
         await runMeteoAlertCheck()
 
-        expect(send.calledOnce).to.equal(true)
-        expect(create.calledOnce).to.equal(true)
+        // One send + one record per day.
+        expect(send.calledTwice).to.equal(true)
+        expect(create.calledTwice).to.equal(true)
         expect(send.calledBefore(create)).to.equal(true)
+        // Today is passed 'today', tomorrow 'tomorrow'.
+        expect(send.getCall(0).args[1]).to.equal('today')
+        expect(send.getCall(1).args[1]).to.equal('tomorrow')
+    })
+
+    it('de-dups per (bulletin, date): the same bulletin keyed by today vs tomorrow yields distinct keys', async () => {
+        parse.returns(parsed({ isCritic: true }))
+
+        await runMeteoAlertCheck()
+
+        const keys = getByNumber.getCalls().map((c) => c.args[0])
+        expect(keys.length).to.equal(2)
+        expect(keys[0]).to.not.equal(keys[1])
+        expect(keys.every((k) => k.startsWith('065/2026@'))).to.equal(true)
     })
 
     it('does not resend a bulletin whose report row already exists', async () => {
@@ -66,7 +83,7 @@ describe('tests/tasks/meteo-alerts', () => {
         await runMeteoAlertCheck()
 
         expect(send.called).to.equal(false)
-        expect(create.calledOnce).to.equal(true)
+        expect(create.calledTwice).to.equal(true)
     })
 
     it('does NOT record the report when the send fails, so it retries on the next tick', async () => {
@@ -75,11 +92,11 @@ describe('tests/tasks/meteo-alerts', () => {
 
         await runMeteoAlertCheck() // must not throw
 
-        expect(send.calledOnce).to.equal(true)
         expect(create.called).to.equal(false)
     })
 
-    it('does nothing when there is no alert for tomorrow', async () => {
+    it('does nothing when neither today nor tomorrow has an alert', async () => {
+        getToday.resolves(undefined)
         getTomorrow.resolves(undefined)
 
         await runMeteoAlertCheck()

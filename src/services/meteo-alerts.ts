@@ -57,6 +57,12 @@ export type MeteoAlertZoneData = {
 
 export type MeteoAlert = BaseMeteoAlert & MeteoAlertZoneData
 
+export const getTodayMeteoAlert = async (): Promise<MeteoAlert | undefined> => {
+    const today = customMoment().format('YYYY-MM-DD HH:mm')
+
+    return getMeteoAlert(today)
+}
+
 export const getTomorrowMeteoAlert = async (): Promise<MeteoAlert | undefined> => {
     const tomorrow = customMoment().add(1, 'day').format('YYYY-MM-DD HH:mm')
 
