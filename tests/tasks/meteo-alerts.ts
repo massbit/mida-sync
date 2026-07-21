@@ -6,7 +6,7 @@ import * as alertUtil from '../../src/utilities/meteo-alerts'
 import * as alertModel from '../../src/models/alert-report'
 import * as telegram from '../../src/utilities/telegram'
 import { ParsedMeteoAlert } from '../../src/utilities/meteo-alerts'
-import { runMeteoAlertCheck } from '../../src/tasks/meteo-alerts'
+import { alertReportKey, runMeteoAlertCheck } from '../../src/tasks/meteo-alerts'
 
 const parsed = (overrides: Partial<ParsedMeteoAlert> = {}): ParsedMeteoAlert =>
     ({
@@ -56,15 +56,18 @@ describe('tests/tasks/meteo-alerts', () => {
         expect(send.getCall(1).args[1]).to.equal('tomorrow')
     })
 
-    it('de-dups per (bulletin, date): the same bulletin keyed by today vs tomorrow yields distinct keys', async () => {
-        parse.returns(parsed({ isCritic: true }))
+    it('keys de-dup on (date, criticality), not the bulletin number', async () => {
+        parse.returns(parsed({ isCritic: true, criticZoneData: { temporali: 'yellow' } as never }))
 
         await runMeteoAlertCheck()
 
         const keys = getByNumber.getCalls().map((c) => c.args[0])
         expect(keys.length).to.equal(2)
+        // today vs tomorrow => different date prefix => distinct keys
         expect(keys[0]).to.not.equal(keys[1])
-        expect(keys.every((k) => k.startsWith('065/2026@'))).to.equal(true)
+        // key carries the criticality signature, never the bulletin id
+        expect(keys.every((k) => k.endsWith('|temporali=yellow'))).to.equal(true)
+        expect(keys.some((k) => k.includes('065/2026'))).to.equal(false)
     })
 
     it('does not resend a bulletin whose report row already exists', async () => {
@@ -93,6 +96,18 @@ describe('tests/tasks/meteo-alerts', () => {
         await runMeteoAlertCheck() // must not throw
 
         expect(create.called).to.equal(false)
+    })
+
+    it('alertReportKey: same date + same colors => same key regardless of bulletin id (re-issue not re-sent)', () => {
+        const a = parsed({ id: 'allerta/075/2026', criticZoneData: { temporali: 'yellow' } as never })
+        const b = parsed({ id: 'allerta/076/2026', criticZoneData: { temporali: 'yellow' } as never })
+
+        expect(alertReportKey(a, '2026-07-21')).to.equal(alertReportKey(b, '2026-07-21'))
+        // escalation (colors change) => different key => re-sends
+        const c = parsed({ id: 'allerta/077/2026', criticZoneData: { temporali: 'orange' } as never })
+        expect(alertReportKey(a, '2026-07-21')).to.not.equal(alertReportKey(c, '2026-07-21'))
+        // same colors, different date => different key
+        expect(alertReportKey(a, '2026-07-21')).to.not.equal(alertReportKey(a, '2026-07-22'))
     })
 
     it('does nothing when neither today nor tomorrow has an alert', async () => {

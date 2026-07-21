@@ -8,15 +8,25 @@ import logger from '../logger'
 
 const log = logger.child({ task: 'meteo-alerts' })
 
-// A bulletin covers a multi-day window and carries a FIXED criticality per day, so the same
-// document (e.g. allerta075/2026) is green tomorrow yet orange today. De-dup therefore has to key
-// on (bulletin, referenced date), not the bulletin number alone. An escalation arrives as a NEW
-// bulletin number for the same date, so it re-sends; re-observing the same bulletin does not.
-const reportKey = (id: string, date: string): string => `${id}@${date}`
+// What we must notify on is a CHANGE in the target zone's criticality for a referenced date, NOT a
+// new document. ARPAE re-issues the bulletin through the day (new number, same colors) and rolls
+// yesterday's "domani" bulletin into today's "oggi" one — both look like fresh documents. Keying on
+// the bulletin number therefore re-sent identical alerts (and, via a new report row with
+// pretemp/estofex flags reset, re-sent those reports too). So the key is (date, criticality
+// signature): same colors for the same date => already handled, no re-send; an escalation changes
+// the colors => new key => re-sends.
+const criticalitySignature = (alert: ParsedMeteoAlert): string =>
+    Object.keys(alert.criticZoneData)
+        .sort()
+        .map((k) => `${k}=${alert.criticZoneData[k as keyof typeof alert.criticZoneData]}`)
+        .join(',')
+
+export const alertReportKey = (alert: ParsedMeteoAlert, date: string): string =>
+    `${date}|${criticalitySignature(alert)}`
 
 const handleDayAlert = async (raw: MeteoAlert, day: AlertDay, date: string): Promise<ParsedMeteoAlert> => {
     const parsedAlert = parseMeteoAlert(raw, config.alert_zone)
-    const key = reportKey(parsedAlert.id, date)
+    const key = alertReportKey(parsedAlert, date)
 
     const existing = await getAlertReportByNumber(key)
 
