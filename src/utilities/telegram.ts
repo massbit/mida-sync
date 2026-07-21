@@ -55,6 +55,29 @@ ${separator}
     })
 }
 
+export const sendMeteoAllClearMessage = async (alert: ParsedMeteoAlert, day: AlertDay = 'tomorrow') => {
+    const heading =
+        day === 'today' ? '🟢 Allerta meteo di oggi rientrata' : '🟢 Allerta meteo per domani rientrata'
+
+    const textMessage = `${heading}
+📅 Data inizio: ${alert.dataInizio}
+📅 Data fine: ${alert.dataFine}
+${separator}
+Zona ${config.alert_zone}: nessuna criticità
+${separator}
+📜 Descrizione: ${alert.descrizionemeteo}
+`
+
+    const buttons: InlineKeyboardButton[][] = [[{ text: 'Documento pdf', url: alert.link }]]
+
+    await sendTelegramMessage(config.chat_id, textMessage, {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: buttons,
+        },
+    })
+}
+
 export const sendRiverLevelCrossingMessage = async (
     river: River,
     crossing: ThresholdCrossing,

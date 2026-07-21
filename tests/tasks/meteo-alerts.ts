@@ -27,17 +27,19 @@ describe('tests/tasks/meteo-alerts', () => {
     let getToday: SinonStub
     let getTomorrow: SinonStub
     let parse: SinonStub
-    let getByNumber: SinonStub
+    let getLatest: SinonStub
     let create: SinonStub
     let send: SinonStub
+    let sendAllClear: SinonStub
 
     beforeEach(() => {
         getToday = sinon.stub(alertService, 'getTodayMeteoAlert').resolves({} as never)
         getTomorrow = sinon.stub(alertService, 'getTomorrowMeteoAlert').resolves({} as never)
         parse = sinon.stub(alertUtil, 'parseMeteoAlert')
-        getByNumber = sinon.stub(alertModel, 'getAlertReportByNumber').resolves(undefined)
+        getLatest = sinon.stub(alertModel, 'getLatestAlertReportForDate').resolves(undefined)
         create = sinon.stub(alertModel, 'createAlertReport').resolves({} as never)
         send = sinon.stub(telegram, 'sendMeteoAlertMessage').resolves()
+        sendAllClear = sinon.stub(telegram, 'sendMeteoAllClearMessage').resolves()
     })
 
     afterEach(() => sinon.restore())
@@ -61,18 +63,18 @@ describe('tests/tasks/meteo-alerts', () => {
 
         await runMeteoAlertCheck()
 
-        const keys = getByNumber.getCalls().map((c) => c.args[0])
+        const keys = create.getCalls().map((c) => c.args[0].report_number)
         expect(keys.length).to.equal(2)
         // today vs tomorrow => different date prefix => distinct keys
         expect(keys[0]).to.not.equal(keys[1])
         // key carries the criticality signature, never the bulletin id
-        expect(keys.every((k) => k.endsWith('|temporali=yellow'))).to.equal(true)
-        expect(keys.some((k) => k.includes('065/2026'))).to.equal(false)
+        expect(keys.every((k: string) => k.endsWith('|temporali=yellow'))).to.equal(true)
+        expect(keys.some((k: string) => k.includes('065/2026'))).to.equal(false)
     })
 
-    it('does not resend a bulletin whose report row already exists', async () => {
-        parse.returns(parsed({ isCritic: true }))
-        getByNumber.resolves({ id: 1 } as never)
+    it('does not resend when the latest recorded state for the date is identical', async () => {
+        parse.returns(parsed({ isCritic: true, criticZoneData: { temporali: 'yellow' } as never }))
+        getLatest.callsFake(async (date: string) => ({ report_number: `${date}|temporali=yellow`, is_critic: true } as never))
 
         await runMeteoAlertCheck()
 
@@ -80,12 +82,34 @@ describe('tests/tasks/meteo-alerts', () => {
         expect(create.called).to.equal(false)
     })
 
-    it('records a non-critical bulletin without sending a message', async () => {
+    it('re-sends when a date returns to a critical state after being cleared (orange -> green -> orange)', async () => {
+        parse.returns(parsed({ isCritic: true, criticZoneData: { temporali: 'orange' } as never }))
+        // last recorded state for the date was the all-clear (empty signature)
+        getLatest.callsFake(async (date: string) => ({ report_number: `${date}|`, is_critic: false } as never))
+
+        await runMeteoAlertCheck()
+
+        expect(send.calledTwice).to.equal(true)
+    })
+
+    it('sends an all-clear when a previously-critical date drops to non-critical', async () => {
+        parse.returns(parsed({ isCritic: false, criticZoneData: {} as never }))
+        getLatest.callsFake(async (date: string) => ({ report_number: `${date}|temporali=orange`, is_critic: true } as never))
+
+        await runMeteoAlertCheck()
+
+        expect(sendAllClear.calledTwice).to.equal(true)
+        expect(send.called).to.equal(false)
+        expect(create.calledTwice).to.equal(true)
+    })
+
+    it('records a non-critical bulletin without sending anything when nothing critical was outstanding', async () => {
         parse.returns(parsed({ isCritic: false }))
 
         await runMeteoAlertCheck()
 
         expect(send.called).to.equal(false)
+        expect(sendAllClear.called).to.equal(false)
         expect(create.calledTwice).to.equal(true)
     })
 

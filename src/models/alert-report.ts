@@ -28,10 +28,15 @@ export const getLastAlertReport = async (): Promise<AlertReport> => {
     return reports[0]
 }
 
-export const getAlertReportByNumber = async (reportNumber: string): Promise<AlertReport | undefined> => {
-    const query = `SELECT * FROM ${tableName} WHERE report_number = $1 ORDER BY id DESC LIMIT 1`
+// The report_number is `${date}|${criticalitySignature}`, so the most recent row whose number
+// starts with `${date}|` is the last criticality state we recorded for that referenced date. That
+// is what a re-issue must be compared against — NOT "does an exact-key row exist anywhere in
+// history", which silently drops a re-escalation back to a previously-seen state. `date` is
+// YYYY-MM-DD (no LIKE metacharacters) so the prefix match is exact.
+export const getLatestAlertReportForDate = async (date: string): Promise<AlertReport | undefined> => {
+    const query = `SELECT * FROM ${tableName} WHERE report_number LIKE $1 ORDER BY id DESC LIMIT 1`
 
-    const rows = await database.query<AlertReport>(query, [reportNumber])
+    const rows = await database.query<AlertReport>(query, [`${date}|%`])
 
     return rows[0]
 }
