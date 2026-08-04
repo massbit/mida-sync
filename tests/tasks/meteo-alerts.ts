@@ -122,6 +122,21 @@ describe('tests/tasks/meteo-alerts', () => {
         expect(create.called).to.equal(false)
     })
 
+    it('falls back to now() when the bulletin carries no dataEmissione', async () => {
+        // ARPAE occasionally serves a bulletin without it. Forwarding undefined made pg send an
+        // explicit NULL, which the NOT NULL column rejected — and since the send precedes the
+        // insert, the alert was re-sent on every tick until the field reappeared.
+        parse.returns(parsed({ isCritic: true, dataEmissione: undefined as never }))
+
+        await runMeteoAlertCheck()
+
+        expect(create.calledTwice).to.equal(true)
+        create.getCalls().forEach((call) => {
+            expect(call.args[0].emitted_on).to.be.a('string')
+            expect(Number.isNaN(Date.parse(call.args[0].emitted_on))).to.equal(false)
+        })
+    })
+
     it('alertReportKey: same date + same colors => same key regardless of bulletin id (re-issue not re-sent)', () => {
         const a = parsed({ id: 'allerta/075/2026', criticZoneData: { temporali: 'yellow' } as never })
         const b = parsed({ id: 'allerta/076/2026', criticZoneData: { temporali: 'yellow' } as never })

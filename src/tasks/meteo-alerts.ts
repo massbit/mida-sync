@@ -47,7 +47,10 @@ const handleDayAlert = async (raw: MeteoAlert, day: AlertDay, date: string): Pro
         created_on: new Date().toISOString(),
         starts_on: parsedAlert.dataInizio,
         ends_on: parsedAlert.dataFine,
-        emitted_on: parsedAlert.dataEmissione,
+        // ARPAE sometimes serves a bulletin without dataEmissione. Passing it straight through sends
+        // an explicit NULL, which defeats the column's DEFAULT now() and trips its NOT NULL check —
+        // and because the Telegram send happens before the insert, every retry re-sent the alert.
+        emitted_on: parsedAlert.dataEmissione ?? new Date().toISOString(),
     }
 
     // Send FIRST and record only once the send succeeds, so a failed send is retried on the next
