@@ -9,11 +9,35 @@ services:
         env_file:
             - .env
         restart: unless-stopped
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
+        depends_on:
+            postgres:
+                condition: service_healthy
         healthcheck:
             test: ['CMD', 'curl', '-sf', 'http://localhost:3000/health']
             interval: 10s
             timeout: 5s
             retries: 5
             start_period: 30s
+
+    # Database lives with the service (DATABASE_PROD_HOST=postgres), so there is no host
+    # PostgreSQL to keep in sync and no host.docker.internal hop. Port 5432 is deliberately
+    # not published: only the compose network reaches it.
+    postgres:
+        image: postgres:16-alpine
+        # Reuses the DATABASE_* values from .env — one source of truth for the credentials.
+        environment:
+            POSTGRES_USER: ${DATABASE_USERNAME}
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+            POSTGRES_DB: ${DATABASE_NAME}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        restart: unless-stopped
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
+
+volumes:
+    postgres_data:

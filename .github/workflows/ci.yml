@@ -51,7 +51,7 @@ jobs:
                   key: ${{ secrets.PRIVATE_KEY }}
                   strip_components: 1
                   source: './service/*'
-                  target: 'mida-sync/'
+                  target: '/opt/mida-sync/'
             - name: Update server service
               uses: appleboy/ssh-action@master
               with:
@@ -59,8 +59,10 @@ jobs:
                 username: ${{ secrets.SSH_USER }}
                 key: ${{ secrets.PRIVATE_KEY }}
                 script: |
-                  cd mida-sync/
-                  docker compose build --no-cache
-                  docker rm -f mida-sync 2>/dev/null || true
-                  docker compose up -d --force-recreate --remove-orphans
+                  cd /opt/mida-sync/
+                  docker compose build --no-cache api
+                  docker compose up -d postgres
+                  # --no-deps so a deploy recreates only the api container: Postgres keeps
+                  # running and its volume is never touched by a push.
+                  docker compose up -d --force-recreate --no-deps api
                   docker image prune -f || true
