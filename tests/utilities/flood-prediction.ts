@@ -91,6 +91,7 @@ describe('tests/utilities/flood-prediction', () => {
                     minSamples: 3,
                     precursorPercentile: 0.25,
                     minSeparationMinutes: 0,
+                    maxLeadFraction: 0.8,
                 })
             ).to.equal(null)
         })
@@ -137,6 +138,37 @@ describe('tests/utilities/flood-prediction', () => {
 
             expect(model.sampleSize).to.equal(1)
             expect(isLinkActive(model)).to.equal(false)
+        })
+
+        it('rejects a model whose lead time saturates the lookback window', () => {
+            // Upstream with no flood signal: a flat baseline whose highest sample happens to sit far
+            // back in the 48h window, so the "peak" is noise at the window edge (~47h lead).
+            const noisy = (dayOffset: number) => {
+                const onsetMin = (dayOffset * DAY) / MIN
+                return {
+                    downstream: [at(onsetMin - 30, 9), at(onsetMin, 11), at(onsetMin + 30, 12), at(onsetMin + 60, 8)],
+                    upstream: [at(onsetMin - 47 * 60, 7.5), at(onsetMin - 20 * 60, 7.2), at(onsetMin - 60, 7.1)],
+                }
+            }
+            const events = [noisy(2), noisy(5), noisy(8)]
+            const model = calibrateLink(
+                events.flatMap((e) => e.upstream),
+                events.flatMap((e) => e.downstream),
+                10
+            )
+
+            expect(model.sampleSize).to.equal(3)
+            expect(model.leadTimeMinutes).to.be.NaN
+            expect(model.precursorLevel).to.be.NaN
+            expect(model.rejectedReason).to.be.a('string')
+            expect(isLinkActive(model)).to.equal(false)
+        })
+
+        it('records where the precursor level sits in the upstream gauge history', () => {
+            const model = calibrateLink(upstream, downstream, 10)
+
+            // 7 of the 9 upstream samples are at or below the 5.25 m precursor level.
+            expect(model.precursorRank).to.be.closeTo(7 / 9, 1e-9)
         })
     })
 

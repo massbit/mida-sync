@@ -34,6 +34,15 @@ export interface LinkModel {
     precursorLevel: number
     sampleSize: number
     leadSpreadMinutes: number
+    /**
+     * Where `precursorLevel` sits in the upstream gauge's own history (0..1). A trustworthy
+     * precursor is a rare level for that gauge; a value near the middle means the gauge sits at or
+     * above the "precursor" most of the time, so it cannot tell a flood from baseline flow.
+     * Recorded for tuning only — it does not gate the model yet.
+     */
+    precursorRank?: number
+    /** Set when a guard invalidated the model; lead/precursor are then NaN so the link stays inactive. */
+    rejectedReason?: string
 }
 
 export interface Prediction {
@@ -48,6 +57,7 @@ export interface FloodModelOptions {
     minSamples: number
     precursorPercentile: number
     minSeparationMinutes: number
+    maxLeadFraction: number
 }
 
 export const DEFAULT_FLOOD_OPTIONS: FloodModelOptions = {
@@ -58,6 +68,8 @@ export const DEFAULT_FLOOD_OPTIONS: FloodModelOptions = {
     // Treat brief dips back under the threshold as part of the same flood, so one flood is one
     // event (not many micro-events when the level hugs the threshold).
     minSeparationMinutes: 6 * 60,
+    // A learned lead time may not consume most of the lookback window (see calibrateLink).
+    maxLeadFraction: 0.8,
 }
 
 const MINUTE_MS = 60_000
@@ -82,6 +94,10 @@ export const percentile = (values: number[], p: number): number => {
 
     return sorted[low] + (sorted[high] - sorted[low]) * (rank - low)
 }
+
+/** Fraction of `readings` at or below `level` — how ordinary that level is for this gauge. */
+const rankOf = (readings: Reading[], level: number): number =>
+    readings.length === 0 ? NaN : readings.filter((r) => r.value <= level).length / readings.length
 
 /**
  * Splits a level series into maximal runs strictly above `threshold`. Each run yields one event
@@ -174,13 +190,31 @@ export const calibrateLink = (
     const leads = observations.map((o) => o.leadMinutes)
     const peaks = observations.map((o) => o.upstreamPeak)
 
-    return {
+    const model: LinkModel = {
         sampleSize: observations.length,
         leadTimeMinutes: observations.length > 0 ? median(leads) : NaN,
         precursorLevel: observations.length > 0 ? percentile(peaks, options.precursorPercentile) : NaN,
         leadSpreadMinutes:
             observations.length > 0 ? percentile(leads, 0.75) - percentile(leads, 0.25) : NaN,
+        precursorRank: observations.length > 0 ? rankOf(upstream, percentile(peaks, options.precursorPercentile)) : NaN,
     }
+
+    // `findPrecursor` returns the maximum of the lookback window, whether or not that maximum is a
+    // real flood peak. When the upstream gauge carries no signal for this downstream point, the
+    // maximum lands wherever baseline noise happens to be highest — typically near the far edge of
+    // the window — so the learned lead saturates towards `maxLookbackMinutes` and the learned
+    // precursor level collapses onto ordinary flow. Reject that: it is the same degenerate fit as
+    // Gallo -> Gandazzolo (lead 0), only with the lead pinned at the other end of the window.
+    if (model.leadTimeMinutes > options.maxLeadFraction * options.maxLookbackMinutes) {
+        return {
+            ...model,
+            leadTimeMinutes: NaN,
+            precursorLevel: NaN,
+            rejectedReason: `lead time ${Math.round(model.leadTimeMinutes)}min saturates the ${options.maxLookbackMinutes}min lookback window`,
+        }
+    }
+
+    return model
 }
 
 export const isLinkActive = (model: LinkModel, options: FloodModelOptions = DEFAULT_FLOOD_OPTIONS): boolean =>

@@ -74,7 +74,13 @@ export const runFloodCalibration = async (): Promise<FloodCalibrationSummary> =>
             }
 
             log.info(
-                { linkId: link.id, sampleSize: model.sampleSize, active: isLinkActive(model) },
+                {
+                    linkId: link.id,
+                    sampleSize: model.sampleSize,
+                    active: isLinkActive(model),
+                    precursorRank: model.precursorRank,
+                    rejectedReason: model.rejectedReason,
+                },
                 'Calibrated flood link'
             )
         } catch (err) {
