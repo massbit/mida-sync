@@ -85,7 +85,7 @@ Example bootstrap for the Molinella stations (Idice S. Antonio + Reno Gandazzolo
 ```bash
 # register stations, link them, then:
 curl -X POST localhost:3000/flood-backfill -H 'content-type: application/json' -d '{"from":"2020-01","to":"2024-12"}'
-curl -X POST localhost:3000/flood-calibration
+curl -X POST localhost:3000/flood-calibration -H 'content-type: application/json' -d '{}'
 ```
 
 ## Configuration and Installation

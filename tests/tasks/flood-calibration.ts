@@ -59,9 +59,13 @@ const buildPair = (dayOffset: number, leadMin: number, upstreamPeak: number) => 
     }
 }
 
+// Ordinary flow between the events: a real gauge spends almost all its time at baseline, and the
+// precursor-rank guard is only meaningful against that.
+const baselineRows = Array.from({ length: 60 }, (_, i) => ({ value: 3, measured_at: iso(T0 + i * 4 * 60 * MIN) }))
+
 const e = [buildPair(2, 120, 5), buildPair(5, 150, 6), buildPair(8, 135, 5.5)]
 const downstreamRows = e.flatMap((p) => p.downstream)
-const upstreamRows = e.flatMap((p) => p.upstream)
+const upstreamRows = [...baselineRows, ...e.flatMap((p) => p.upstream)]
 
 describe('tests/tasks/flood-calibration', () => {
     let getLinks: SinonStub

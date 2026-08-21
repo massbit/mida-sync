@@ -92,6 +92,7 @@ describe('tests/utilities/flood-prediction', () => {
                     precursorPercentile: 0.25,
                     minSeparationMinutes: 0,
                     maxLeadFraction: 0.8,
+                    minObservationRank: 0.9,
                 })
             ).to.equal(null)
         })
@@ -118,11 +119,15 @@ describe('tests/utilities/flood-prediction', () => {
             }
         }
 
+        // Ordinary flow between the events: a real gauge spends almost all its time at baseline, and
+        // the precursor-rank guard is only meaningful against that.
+        const baseline = Array.from({ length: 60 }, (_, i) => at(i * 4 * 60, 3))
+
         const e1 = buildPair(2, 120, 5)
         const e2 = buildPair(5, 150, 6)
         const e3 = buildPair(8, 135, 5.5)
         const downstream = [...e1.downstream, ...e2.downstream, ...e3.downstream]
-        const upstream = [...e1.upstream, ...e2.upstream, ...e3.upstream]
+        const upstream = [...baseline, ...e1.upstream, ...e2.upstream, ...e3.upstream]
 
         it('learns lead time and precursor level from historical events', () => {
             const model = calibrateLink(upstream, downstream, 10)
@@ -167,8 +172,26 @@ describe('tests/utilities/flood-prediction', () => {
         it('records where the precursor level sits in the upstream gauge history', () => {
             const model = calibrateLink(upstream, downstream, 10)
 
-            // 7 of the 9 upstream samples are at or below the 5.25 m precursor level.
-            expect(model.precursorRank).to.be.closeTo(7 / 9, 1e-9)
+            // 67 of the 69 upstream samples are at or below the 5.25 m precursor level.
+            expect(model.precursorRank).to.be.closeTo(67 / 69, 1e-9)
+        })
+
+        it('drops an event the upstream gauge did not drive, so it cannot drag the precursor', () => {
+            // A fourth downstream exceedance whose upstream peak (3.05) is an ordinary level for the
+            // gauge: the downstream came up from something else. Counting it would pull the 25th
+            // percentile of peaks down into baseline flow, which is how Portonovo learned 7.05 m.
+            const junk = buildPair(11, 120, 3.05)
+            const model = calibrateLink(
+                [...upstream, ...junk.upstream],
+                [...downstream, ...junk.downstream],
+                10
+            )
+
+            expect(model.sampleSize).to.equal(3)
+            expect(model.discardedObservations).to.equal(1)
+            expect(model.leadTimeMinutes).to.equal(135)
+            expect(model.precursorLevel).to.be.closeTo(5.25, 1e-9)
+            expect(isLinkActive(model)).to.equal(true)
         })
     })
 

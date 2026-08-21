@@ -8,7 +8,8 @@
  *
  * No AI/regression — just event detection plus robust statistics over past events. The model is
  * deliberately conservative on `precursorLevel` (a low percentile of pre-event upstream peaks) so
- * it tends to catch events at the cost of some false positives. The lead time is measured from the
+ * it tends to catch events at the cost of some false positives; that only holds once the events the
+ * upstream gauge did not drive have been dropped (see `minObservationRank` in {@link calibrateLink}). The lead time is measured from the
  * upstream peak to the downstream onset, so the online prediction (triggered while the upstream is
  * still rising) is slightly early-biased; the prediction-scoring feedback loop corrects this drift.
  */
@@ -35,12 +36,12 @@ export interface LinkModel {
     sampleSize: number
     leadSpreadMinutes: number
     /**
-     * Where `precursorLevel` sits in the upstream gauge's own history (0..1). A trustworthy
-     * precursor is a rare level for that gauge; a value near the middle means the gauge sits at or
-     * above the "precursor" most of the time, so it cannot tell a flood from baseline flow.
-     * Recorded for tuning only — it does not gate the model yet.
+     * Where `precursorLevel` sits in the upstream gauge's own history (0..1). Recorded for
+     * observability: a trustworthy precursor is a rare level for that gauge.
      */
     precursorRank?: number
+    /** Events dropped as not driven by this upstream gauge (see `minObservationRank`). */
+    discardedObservations?: number
     /** Set when a guard invalidated the model; lead/precursor are then NaN so the link stays inactive. */
     rejectedReason?: string
 }
@@ -58,6 +59,7 @@ export interface FloodModelOptions {
     precursorPercentile: number
     minSeparationMinutes: number
     maxLeadFraction: number
+    minObservationRank: number
 }
 
 export const DEFAULT_FLOOD_OPTIONS: FloodModelOptions = {
@@ -70,6 +72,9 @@ export const DEFAULT_FLOOD_OPTIONS: FloodModelOptions = {
     minSeparationMinutes: 6 * 60,
     // A learned lead time may not consume most of the lookback window (see calibrateLink).
     maxLeadFraction: 0.8,
+    // An event only counts if the upstream gauge was itself in the top decile of its own history
+    // when it peaked (see calibrateLink).
+    minObservationRank: 0.9,
 }
 
 const MINUTE_MS = 60_000
@@ -183,9 +188,21 @@ export const calibrateLink = (
     options: FloodModelOptions = DEFAULT_FLOOD_OPTIONS
 ): LinkModel => {
     const events = detectExceedanceEvents(downstream, threshold, options.minSeparationMinutes)
-    const observations = events
+    const candidateObservations = events
         .map((event) => findPrecursor(upstream, event, options))
         .filter((obs): obs is PrecursorObservation => obs !== null)
+
+    // Drop the events this upstream gauge demonstrably did not drive: if its peak in the lookback
+    // window was an ordinary level for it, the downstream exceedance came from somewhere else, and
+    // keeping it drags `precursorLevel` down into baseline flow. Real case: Portonovo brushes its
+    // 10.3 m soglia1 on regulated summer levels, and 11 of its 52 exceedance days had Sesto Imolese
+    // sitting at 7.04 m — which pulled the learned precursor to 7.05 m, a level the gauge is above
+    // three quarters of the time.
+    const minCausalPeak = percentile(
+        upstream.map((r) => r.value),
+        options.minObservationRank
+    )
+    const observations = candidateObservations.filter((o) => o.upstreamPeak >= minCausalPeak)
 
     const leads = observations.map((o) => o.leadMinutes)
     const peaks = observations.map((o) => o.upstreamPeak)
@@ -197,6 +214,7 @@ export const calibrateLink = (
         leadSpreadMinutes:
             observations.length > 0 ? percentile(leads, 0.75) - percentile(leads, 0.25) : NaN,
         precursorRank: observations.length > 0 ? rankOf(upstream, percentile(peaks, options.precursorPercentile)) : NaN,
+        discardedObservations: candidateObservations.length - observations.length,
     }
 
     // `findPrecursor` returns the maximum of the lookback window, whether or not that maximum is a
