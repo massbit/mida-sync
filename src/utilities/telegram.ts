@@ -8,6 +8,10 @@ import { config } from '../config/config'
 
 const separator = '--------------------------------'
 
+// River/flood alerting is still being tuned, so its messages are flagged as test output. Remove
+// this prefix (and its uses below) once the models are trusted.
+const testPrefix = '🧪 TEST — '
+
 const thresholdLabel: Record<ThresholdCrossing['threshold']['key'], string> = {
     soglia1: 'soglia 1',
     soglia2: 'soglia 2',
@@ -87,7 +91,7 @@ export const sendRiverLevelCrossingMessage = async (
     const directionLine =
         crossing.direction === 'above' ? `⬆️ Superata ${label}` : `⬇️ Rientrata sotto ${label}`
 
-    const textMessage = `🌊 Livello del ${river.river_name} — ${river.station_name}
+    const textMessage = `${testPrefix}🌊 Livello del ${river.river_name} — ${river.station_name}
 ${directionLine}
 Livello attuale: ${currentValue} m
 Soglia: ${crossing.threshold.value} m`
@@ -128,7 +132,7 @@ export const sendFloodPredictionMessage = async (
         minute: '2-digit',
     })
 
-    const textMessage = `🌊⚠️ Possibile piena in arrivo
+    const textMessage = `${testPrefix}🌊⚠️ Possibile piena in arrivo
 Monte: ${upstream.river_name} — ${upstream.station_name}: ${payload.upstreamValue} m
 Storicamente questo livello a monte ha preceduto il superamento della soglia ${payload.targetThreshold} a ${downstream.river_name} — ${downstream.station_name}.
 Arrivo stimato: tra ~${formatLeadTime(payload.leadTimeMinutes)} (≈ ${eta})
