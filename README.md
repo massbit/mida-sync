@@ -16,9 +16,9 @@ The system interfaces with various official and unofficial sources to provide a 
    - **Details:** Analyzes the Estofex XML feed to check for level 1, 2, or 3 forecasts for the following day.
    - **Notification:** In case of critical alerts in the local territory, it sends the European convective forecast map to the Telegram channel.
 
-3. **[Pretemp (Previsione Temporali)](https://pretemp.altervista.org/)**
+3. **[Pretemp (Previsione Temporali)](https://pretemp.it/)**
    - **Feature:** Integration of Italian thunderstorm forecast bulletins.
-   - **Details:** Dynamically retrieves forecast maps for the following day via the Pretemp archive.
+   - **Details:** Looks up the following day in the Pretemp archive (`/archivio/{year}?date_from=&date_to=`) and scrapes the forecast map from the matching forecast page, ignoring the trend map published for the same day.
    - **Notification:** If conditions require it (presence of ongoing alerts), it sends the thunderstorm forecast image to the Telegram channel.
 
 4. **River levels (Allerta Meteo hydrometric stations)**

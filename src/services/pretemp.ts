@@ -1,36 +1,47 @@
 import moment from 'moment'
 import { http } from './http'
-import { toFirstLetterUpperCase } from '../utilities/common'
 import customMoment from '../custom-components/custom-moment'
 import logger from '../logger'
 
+const BASE_URL = 'https://pretemp.it'
+
+const fetchHtml = async (url: string) => {
+    try {
+        return (await http.get(url)).data as string
+    } catch {
+        return undefined
+    }
+}
+
 export const getPretempReport = async (date: moment.Moment) => {
-    const formattedDate = date.format('DD_MM_YYYY')
-    const month = date.format('MMMM').toLowerCase()
-    const urls = [
-        `https://pretemp.altervista.org/archivio/${date.year()}/${month}/cartine/${formattedDate}.png`,
-        `https://pretemp.altervista.org/archivio/${date.year()}/${toFirstLetterUpperCase(month)}/cartine/${formattedDate}.png`,
-    ]
+    const isoDate = date.format('YYYY-MM-DD')
+    const archive = await fetchHtml(`${BASE_URL}/archivio/${date.year()}?date_from=${isoDate}&date_to=${isoDate}`)
 
-    let image: string | undefined = undefined
+    if (!archive) {
+        logger.warn({ date: isoDate }, 'Pretemp archive unavailable')
+        return undefined
+    }
 
-    for (let i = 0; i < urls.length; i++) {
-        const url = urls[i]
+    // The archive lists both the forecast and the trend for the same day: only the forecast page carries the map.
+    const forecastIds = [...new Set([...archive.matchAll(/\/previsioni\/(\d+)/g)].map((match) => match[1]))]
 
-        try {
-            await http.head(url)
-        } catch {
+    for (const id of forecastIds) {
+        const page = await fetchHtml(`${BASE_URL}/previsioni/${id}`)
+
+        if (!page) {
             continue
         }
 
-        image = url
+        const imageTag = (page.match(/<img\b[^>]*>/g) ?? []).find((tag) => /alt="Mappa previsione/.test(tag))
+        const source = imageTag?.match(/src="([^"]+)"/)?.[1]
+
+        if (source) {
+            return source.startsWith('http') ? source : `${BASE_URL}${source}`
+        }
     }
 
-    if (!image) {
-        logger.warn({ date: formattedDate }, 'Pretemp report unavailable')
-    }
-
-    return image
+    logger.warn({ date: isoDate }, 'Pretemp report unavailable')
+    return undefined
 }
 
 export const getTomorrowPretempReport = async () => {

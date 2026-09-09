@@ -5,114 +5,86 @@ import moment from 'moment'
 import { http } from '../../src/services/http'
 import { getPretempReport, getTomorrowPretempReport } from '../../src/services/pretemp'
 import customMoment from '../../src/custom-components/custom-moment'
-import { toFirstLetterUpperCase } from '../../src/utilities/common'
+
+const IMAGE_URL = 'https://pretemp.it/rails/active_storage/blobs/redirect/abc--def/10-05-2024.jpg'
+
+const archivePage = (ids: number[]) =>
+    ids.map((id) => `<a data-turbo-frame="_top" href="/previsioni/${id}">10 maggio 2024</a>`).join('\n')
+
+const forecastPage = (source: string) =>
+    `<img class="w-full" alt="Mappa previsione del 10 maggio 2024" src="${source}" />`
+
+const trendPage = () =>
+    '<img class="w-full" alt="Mappa tendenza del 10 maggio 2024" src="https://pretemp.it/tendenza_10_05_2024.png" />'
 
 describe('tests/services/pretemp', () => {
     describe('getPretempReport', () => {
-        let axiosHeadStub: SinonStub
+        let httpGetStub: SinonStub
 
         beforeEach(() => {
-            axiosHeadStub = sinon.stub(http, 'head')
+            httpGetStub = sinon.stub(http, 'get')
         })
 
         afterEach(() => {
-            axiosHeadStub.restore()
+            httpGetStub.restore()
         })
 
-        const getExpectedUrls = (date: moment.Moment) => {
-            const formattedDate = date.format('DD_MM_YYYY')
-            const monthLower = date.format('MMMM').toLowerCase()
-            const monthCapitalized = toFirstLetterUpperCase(monthLower)
+        const date = moment.utc('2024-05-10T00:00:00Z')
+        const archiveUrl = 'https://pretemp.it/archivio/2024?date_from=2024-05-10&date_to=2024-05-10'
 
-            const base = `https://pretemp.altervista.org/archivio/${date.year()}`
+        it('returns the forecast map, skipping the trend entry of the same day', async () => {
+            httpGetStub.withArgs(archiveUrl).resolves({ data: archivePage([3520, 3521]) })
+            httpGetStub.withArgs('https://pretemp.it/previsioni/3520').resolves({ data: trendPage() })
+            httpGetStub.withArgs('https://pretemp.it/previsioni/3521').resolves({ data: forecastPage(IMAGE_URL) })
 
-            return [
-                `${base}/${monthLower}/cartine/${formattedDate}.png`,
-                `${base}/${monthCapitalized}/cartine/${formattedDate}.png`,
-            ]
-        }
-
-        it('returns undefined when no URL responds', async () => {
-            const date = moment.utc('2024-05-10T00:00:00Z')
-            const [lowerUrl, upperUrl] = getExpectedUrls(date)
-
-            axiosHeadStub.onFirstCall().rejects(new Error('not found'))
-            axiosHeadStub.onSecondCall().rejects(new Error('not found'))
-
-            const result = await getPretempReport(date)
-
-            expect(result).to.equal(undefined)
-            expect(axiosHeadStub.calledTwice).to.equal(true)
-            expect(axiosHeadStub.firstCall.firstArg).to.equal(lowerUrl)
-            expect(axiosHeadStub.secondCall.firstArg).to.equal(upperUrl)
+            expect(await getPretempReport(date)).to.equal(IMAGE_URL)
         })
 
-        it('returns the last successful URL when both succeed', async () => {
-            const date = moment.utc('2024-05-10T00:00:00Z')
-            const [lowerUrl, upperUrl] = getExpectedUrls(date)
+        it('makes relative image sources absolute', async () => {
+            httpGetStub.withArgs(archiveUrl).resolves({ data: archivePage([3521]) })
+            httpGetStub.withArgs('https://pretemp.it/previsioni/3521').resolves({ data: forecastPage('/maps/10-05-2024.jpg') })
 
-            axiosHeadStub.onFirstCall().resolves()
-            axiosHeadStub.onSecondCall().resolves()
-
-            const result = await getPretempReport(date)
-
-            expect(result).to.equal(upperUrl)
-            expect(axiosHeadStub.calledTwice).to.equal(true)
-            expect(axiosHeadStub.firstCall.firstArg).to.equal(lowerUrl)
-            expect(axiosHeadStub.secondCall.firstArg).to.equal(upperUrl)
+            expect(await getPretempReport(date)).to.equal('https://pretemp.it/maps/10-05-2024.jpg')
         })
 
-        it('returns the first successful URL when the second fails', async () => {
-            const date = moment.utc('2024-05-10T00:00:00Z')
-            const [lowerUrl, upperUrl] = getExpectedUrls(date)
+        it('returns undefined when the day has no forecast', async () => {
+            httpGetStub.withArgs(archiveUrl).resolves({ data: archivePage([]) })
 
-            axiosHeadStub.onFirstCall().resolves()
-            axiosHeadStub.onSecondCall().rejects(new Error('not found'))
+            expect(await getPretempReport(date)).to.equal(undefined)
+        })
 
-            const result = await getPretempReport(date)
+        it('returns undefined when the archive request fails', async () => {
+            httpGetStub.withArgs(archiveUrl).rejects(new Error('not found'))
 
-            expect(result).to.equal(lowerUrl)
-            expect(axiosHeadStub.calledTwice).to.equal(true)
-            expect(axiosHeadStub.firstCall.firstArg).to.equal(lowerUrl)
-            expect(axiosHeadStub.secondCall.firstArg).to.equal(upperUrl)
+            expect(await getPretempReport(date)).to.equal(undefined)
         })
     })
 
     describe('getTomorrowPretempReport', () => {
-        let axiosHeadStub: SinonStub
+        let httpGetStub: SinonStub
         let clock: SinonFakeTimers
 
         beforeEach(() => {
-            axiosHeadStub = sinon.stub(http, 'head')
+            httpGetStub = sinon.stub(http, 'get')
             clock = sinon.useFakeTimers({
                 now: Date.UTC(2024, 4, 9, 12, 0, 0),
             })
         })
 
         afterEach(() => {
-            axiosHeadStub.restore()
+            httpGetStub.restore()
             clock.restore()
         })
 
-        it('uses tomorrow date and returns the first available URL', async () => {
-            const tomorrow = customMoment().add(1, 'day')
-            const formattedDate = tomorrow.format('DD_MM_YYYY')
-            const monthLower = tomorrow.format('MMMM').toLowerCase()
-            const monthCapitalized = toFirstLetterUpperCase(monthLower)
-            const base = `https://pretemp.altervista.org/archivio/${tomorrow.year()}`
-            const lowerUrl = `${base}/${monthLower}/cartine/${formattedDate}.png`
-            const upperUrl = `${base}/${monthCapitalized}/cartine/${formattedDate}.png`
+        it('queries the archive for tomorrow date', async () => {
+            const tomorrow = customMoment().add(1, 'day').format('YYYY-MM-DD')
 
-            axiosHeadStub.onFirstCall().rejects(new Error('not found'))
-            axiosHeadStub.onSecondCall().resolves()
+            httpGetStub
+                .withArgs(`https://pretemp.it/archivio/2024?date_from=${tomorrow}&date_to=${tomorrow}`)
+                .resolves({ data: archivePage([3521]) })
+            httpGetStub.withArgs('https://pretemp.it/previsioni/3521').resolves({ data: forecastPage(IMAGE_URL) })
 
-            const result = await getTomorrowPretempReport()
-
-            expect(result).to.equal(upperUrl)
-            expect(axiosHeadStub.calledTwice).to.equal(true)
-            expect(axiosHeadStub.firstCall.firstArg).to.equal(lowerUrl)
-            expect(axiosHeadStub.secondCall.firstArg).to.equal(upperUrl)
+            expect(await getTomorrowPretempReport()).to.equal(IMAGE_URL)
         })
     })
 })
-
