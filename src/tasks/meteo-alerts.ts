@@ -1,5 +1,5 @@
-import { AlertDay, sendMeteoAlertMessage, sendMeteoAllClearMessage } from '../utilities/telegram'
-import { createAlertReport, getLatestAlertReportForDate } from '../models/alert-report'
+import { AlertDay, PreviousAlertColors, sendMeteoAlertMessage, sendMeteoAllClearMessage } from '../utilities/telegram'
+import { AlertReport, createAlertReport, getLatestAlertReportForDate } from '../models/alert-report'
 import { getTodayMeteoAlert, getTomorrowMeteoAlert, MeteoAlert } from '../services/meteo-alerts'
 import { parseMeteoAlert, ParsedMeteoAlert } from '../utilities/meteo-alerts'
 import customMoment from '../custom-components/custom-moment'
@@ -23,6 +23,16 @@ const criticalitySignature = (alert: ParsedMeteoAlert): string =>
 
 export const alertReportKey = (alert: ParsedMeteoAlert, date: string): string =>
     `${date}|${criticalitySignature(alert)}`
+
+// Inverse of criticalitySignature: the tail of report_number already stores the criticality we last
+// announced for the date, so the transition can be rendered without another query or column.
+export const previousColorsFrom = (report?: AlertReport): PreviousAlertColors =>
+    Object.fromEntries(
+        (report?.report_number.split('|')[1] || '')
+            .split(',')
+            .filter(Boolean)
+            .map((pair) => pair.split('=') as [string, string])
+    )
 
 const handleDayAlert = async (raw: MeteoAlert, day: AlertDay, date: string): Promise<ParsedMeteoAlert> => {
     const parsedAlert = parseMeteoAlert(raw, config.alert_zone)
@@ -57,7 +67,7 @@ const handleDayAlert = async (raw: MeteoAlert, day: AlertDay, date: string): Pro
     // tick instead of being silently de-duplicated forever.
     try {
         if (parsedAlert.isCritic) {
-            await sendMeteoAlertMessage(parsedAlert, day)
+            await sendMeteoAlertMessage(parsedAlert, day, previousColorsFrom(latest))
             await createAlertReport(report)
             log.info({ event: 'sent', reportNumber: key, day }, 'Meteo alert sent')
         } else if (latest?.is_critic) {

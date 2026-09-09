@@ -82,6 +82,23 @@ describe('tests/tasks/meteo-alerts', () => {
         expect(create.called).to.equal(false)
     })
 
+    it('hands the message builder the colours recorded for the date, so it can render the transition', async () => {
+        parse.returns(parsed({ isCritic: true, criticZoneData: { temporali: 'orange' } as never }))
+        getLatest.callsFake(async (date: string) => ({ report_number: `${date}|temporali=yellow`, is_critic: true } as never))
+
+        await runMeteoAlertCheck()
+
+        expect(send.getCall(0).args[2]).to.deep.equal({ temporali: 'yellow' })
+    })
+
+    it('passes no previous colours when the date has no recorded state yet', async () => {
+        parse.returns(parsed({ isCritic: true, criticZoneData: { temporali: 'orange' } as never }))
+
+        await runMeteoAlertCheck()
+
+        expect(send.getCall(0).args[2]).to.deep.equal({})
+    })
+
     it('re-sends when a date returns to a critical state after being cleared (orange -> green -> orange)', async () => {
         parse.returns(parsed({ isCritic: true, criticZoneData: { temporali: 'orange' } as never }))
         // last recorded state for the date was the all-clear (empty signature)

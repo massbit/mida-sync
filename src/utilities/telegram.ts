@@ -2,6 +2,7 @@ import { sendTelegramMessage } from '../services/telegram'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { translateKey } from './common'
 import { ParsedMeteoAlert } from './meteo-alerts'
+import { MeteoAlertType } from '../services/meteo-alerts'
 import { ThresholdCrossing } from './river-sensors'
 import { River } from '../models/river'
 import { config } from '../config/config'
@@ -20,19 +21,39 @@ const thresholdLabel: Record<ThresholdCrossing['threshold']['key'], string> = {
 
 export type AlertDay = 'today' | 'tomorrow'
 
-export const sendMeteoAlertMessage = async (alert: ParsedMeteoAlert, day: AlertDay = 'tomorrow') => {
-    const criticDataMessage = Object.keys(alert.criticZoneData)
-        .map((key) => {
-            const color = alert.criticZoneData[key]
-            const colorHtml =
-                {
-                    green: '🟢',
-                    yellow: '🟡',
-                    orange: '🟠',
-                    red: '🔴',
-                }[color.toLowerCase()] || ''
+const colorEmoji: Record<string, string> = {
+    green: '🟢',
+    yellow: '🟡',
+    orange: '🟠',
+    red: '🔴',
+}
 
-            return `${key.toUpperCase()}: ${colorHtml} ${translateKey(`alert.colors.${color}`, 'it')}`
+const colorLabel = (color: string) => `${colorEmoji[color.toLowerCase()] || ''} ${translateKey(`alert.colors.${color}`, 'it')}`
+
+// Previous per-phenomenon colours, keyed like criticZoneData (e.g. { temporali: 'yellow' }). Empty
+// for a first alert on a date; then the plain colour is printed instead of a transition.
+export type PreviousAlertColors = Record<string, string>
+
+export const sendMeteoAlertMessage = async (
+    alert: ParsedMeteoAlert,
+    day: AlertDay = 'tomorrow',
+    previousColors: PreviousAlertColors = {}
+) => {
+    // Phenomena that dropped back to green leave criticZoneData entirely; without them an alert that
+    // only de-escalated would render exactly like the previous one, so keep their line and show the
+    // move to green.
+    const phenomena = [...new Set([...Object.keys(alert.criticZoneData), ...Object.keys(previousColors)])]
+
+    const criticDataMessage = phenomena
+        .map((key) => {
+            const color = alert.criticZoneData[key as keyof typeof alert.criticZoneData] ?? MeteoAlertType.green
+            const previousColor = previousColors[key]
+
+            // Only render a transition when the colour actually moved, so a re-issue that merely adds
+            // a phenomenon keeps the plain line for the ones that did not change.
+            return previousColor && previousColor !== color
+                ? `${key.toUpperCase()}: ${colorLabel(previousColor)} → ${colorLabel(color)}`
+                : `${key.toUpperCase()}: ${colorLabel(color)}`
         })
         .join('\n')
 
