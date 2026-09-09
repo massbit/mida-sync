@@ -79,6 +79,9 @@ const handleDayAlert = async (raw: MeteoAlert, day: AlertDay, date: string): Pro
 }
 
 export const runMeteoAlertCheck = async (): Promise<ParsedMeteoAlert | undefined> => {
+    // These labels MUST be Rome calendar dates: the bulletin they file is fetched with a Rome wall
+    // clock (romeTimestamp in services/meteo-alerts.ts). moment formats in the process zone, so the
+    // container pins TZ=Europe/Rome — see the boot warning in index.ts.
     const todayDate = customMoment().format('YYYY-MM-DD')
     const tomorrowDate = customMoment().add(1, 'day').format('YYYY-MM-DD')
 

@@ -21,6 +21,10 @@ jobs:
               run: |
                   yarn dist
             - name: Run tests
+              # Production runs with TZ=Europe/Rome (see docker-compose.yml); the runner defaults to
+              # UTC, so pin it here too or the suite never exercises the deployed configuration.
+              env:
+                  TZ: Europe/Rome
               run: |
                   yarn test
     push-on-production:

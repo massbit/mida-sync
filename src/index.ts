@@ -44,10 +44,19 @@ const app = async () => {
         startScheduler()
         // Surface the effective notification config at boot (no secrets) so a missing chat id or
         // token is obvious in the logs instead of failing silently.
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
         logger.info(
-            { hasChatId: !!config.chat_id, hasToken: !!config.telegram_token, alertZone: config.alert_zone },
+            { hasChatId: !!config.chat_id, hasToken: !!config.telegram_token, alertZone: config.alert_zone, timezone },
             'Configuration loaded'
         )
+
+        // Every date this service reasons about is a Rome calendar day (ARPAE bulletins, the Pretemp
+        // archive, croner's schedules), and moment formats in the process zone. Running in UTC filed
+        // Rome day D under D-1 between midnight and the UTC rollover, re-sending the alert and both
+        // maps every night. TZ is set in docker-compose.yml; a missing tzdata would silently undo it.
+        if (timezone !== 'Europe/Rome') {
+            logger.warn({ timezone }, 'Process timezone is not Europe/Rome: daily rollovers will be wrong')
+        }
     } catch (error) {
         logger.error({ err: error }, 'Application bootstrap failed')
         process.exitCode = 1

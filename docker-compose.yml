@@ -8,6 +8,11 @@ services:
             - '127.0.0.1:3000:3000'
         env_file:
             - .env
+        # The image defaults to UTC while ARPAE, the Pretemp archive and croner's schedules are all
+        # Rome-local. Unqualified moment() calls then labelled Rome day D as D-1 between midnight and
+        # the UTC rollover, which re-sent the meteo alert and both forecast maps every night.
+        environment:
+            TZ: Europe/Rome
         restart: unless-stopped
         depends_on:
             postgres:
